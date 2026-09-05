@@ -14,10 +14,11 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render the institutional login', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, paloma-mensajera');
+    expect(compiled.querySelector('h1')?.textContent).toContain('Haz llegar un detalle');
+    expect(compiled.querySelector('button')?.textContent).toContain('Ingresar con mi correo institucional');
   });
 });
