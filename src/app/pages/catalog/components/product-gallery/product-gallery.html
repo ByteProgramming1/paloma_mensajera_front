@@ -1,0 +1,7 @@
+<div class="product-gallery">
+  @for (product of products(); track product.id) {
+    <app-product-card [product]="product" (addToCart)="addToCart.emit($event)" />
+  } @empty {
+    <p class="gallery-empty">No encontramos productos con esos filtros.</p>
+  }
+</div>

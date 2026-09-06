@@ -1,0 +1,120 @@
+:host {
+  --filters-ink: #14234e;
+  --filters-muted: #8e838a;
+  --filters-magenta: #a0206f;
+  --filters-border: #e6dff2;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border: 1px solid var(--filters-border);
+  border-radius: 999px;
+  background: #ffffff;
+}
+
+.search-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--filters-muted);
+  flex-shrink: 0;
+}
+
+.search-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--filters-ink);
+}
+
+.search-field input::placeholder {
+  color: var(--filters-muted);
+}
+
+.availability-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: 1px solid var(--filters-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--filters-ink);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle-track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: #d9d4dc;
+  transition: background 0.15s ease;
+}
+
+.toggle-track--on {
+  background: var(--filters-magenta);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s ease;
+}
+
+.toggle-track--on .toggle-thumb {
+  transform: translateX(16px);
+}
+
+.category-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.category-chip {
+  padding: 8px 18px;
+  border: 1px solid var(--filters-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--filters-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.category-chip--active {
+  background: var(--filters-magenta);
+  border-color: var(--filters-magenta);
+  color: #ffffff;
+}
+
+.category-chip:not(.category-chip--active):hover {
+  background: #faf5f9;
+}

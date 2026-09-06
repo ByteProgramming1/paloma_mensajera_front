@@ -24,10 +24,12 @@ export interface RegisterResponse {
   email: string;
 }
 
+export type ProductType = 'combos' | 'cartas' | 'dulces' | 'rosas' | 'otras';
 export interface Product {
   id: string;
   name: string;
-  type: string;
+  type: ProductType;
+  description: string;
   price: number;
   stock: number;
   isActive: boolean;

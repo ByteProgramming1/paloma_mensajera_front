@@ -9,7 +9,7 @@
   min-height: 100dvh;
   color: var(--ink);
   background: #fffafd;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-sans);
 }
 
 * { box-sizing: border-box; }

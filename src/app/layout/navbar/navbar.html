@@ -1,0 +1,48 @@
+<header class="navbar">
+    <a class="navbar-brand" routerLink="/" aria-label="Paloma Mensajera, inicio">
+        <img class="navbar-logo" src="assets/logos/paloma-mensajera.png" alt="" />
+        <span class="navbar-brand-text">
+            <strong>Paloma <em>Mensajera</em></strong>
+            <small>Detalles que llegan</small>
+        </span>
+    </a>
+
+    <nav class="navbar-nav" aria-label="Navegación principal">
+        <a
+            class="nav-link"
+            routerLink="/catalog"
+            routerLinkActive="nav-link--active"
+        >
+            Catálogo
+        </a>
+        <a class="nav-link" routerLink="/cart" routerLinkActive="nav-link--active">
+            Carrito
+        </a>
+        <a class="nav-link" routerLink="/orders" routerLinkActive="nav-link--active">
+            Mis Pedidos
+        </a>
+    </nav>
+
+    <div class="navbar-actions">
+        <a
+            routerLink="/cart"
+            class="cart-button"
+            aria-label="Ver carrito"
+        >
+            <svg class="cart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    d="M3 3H5L5.4 5M5.4 5H21L18 14H7L5.4 5Z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+                <circle cx="9" cy="19" r="1.4" fill="currentColor" />
+                <circle cx="17" cy="19" r="1.4" fill="currentColor" />
+            </svg>
+            <!-- <span class="cart-badge">{{ cartCount }}</span> -->
+        </a>
+
+        <button type="button" class="user-avatar" aria-label="Cuenta de usuario">VR</button>
+    </div>
+</header>

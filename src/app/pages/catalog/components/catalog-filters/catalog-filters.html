@@ -1,0 +1,42 @@
+<div class="catalog-filters">
+  <div class="filters-row">
+    <label class="search-field">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6" />
+        <path d="M20 20L16.5 16.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Buscar productos..."
+        [value]="searchTerm()"
+        (input)="updateSearch($event)"
+      />
+    </label>
+
+    <button
+      type="button"
+      class="availability-toggle"
+      role="switch"
+      [attr.aria-checked]="onlyAvailable()"
+      (click)="toggleAvailable()"
+    >
+      <span class="toggle-track" [class.toggle-track--on]="onlyAvailable()">
+        <span class="toggle-thumb"></span>
+      </span>
+      Solo Disponibles
+    </button>
+  </div>
+
+  <div class="category-row">
+    @for (category of categories; track category.id) {
+      <button
+        type="button"
+        class="category-chip"
+        [class.category-chip--active]="activeCategory() === category.id"
+        (click)="setCategory(category.id)"
+      >
+        {{ category.label }}
+      </button>
+    }
+  </div>
+</div>

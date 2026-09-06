@@ -1,0 +1,6 @@
+<app-navbar />
+<section class="catalog-page">
+    <app-catalog-banner />
+    <app-catalog-filters (filtersChange)="onFiltersChange($event)" />
+    <app-product-gallery [products]="filteredProducts()" (addToCart)="onAddToCart($event)" />
+</section>
