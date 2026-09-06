@@ -7,7 +7,7 @@
         </span>
     </a>
 
-    <nav class="navbar-nav" aria-label="Navegación principal">
+    <nav class="navbar-nav" [class.navbar-nav--open]="isMenuOpen()" aria-label="Navegación principal">
         <a
             class="nav-link"
             routerLink="/catalog"
@@ -40,9 +40,28 @@
                 <circle cx="9" cy="19" r="1.4" fill="currentColor" />
                 <circle cx="17" cy="19" r="1.4" fill="currentColor" />
             </svg>
-            <!-- <span class="cart-badge">{{ cartCount }}</span> -->
+            @if (cart.totalItems() > 0) {
+                <span class="cart-badge">{{ cart.totalItems() }}</span>
+            }
         </a>
 
         <button type="button" class="user-avatar" aria-label="Cuenta de usuario">VR</button>
+
+        <button
+            type="button"
+            class="menu-toggle"
+            [class.menu-toggle--open]="isMenuOpen()"
+            aria-label="Abrir menú de navegación"
+            [attr.aria-expanded]="isMenuOpen()"
+            (click)="toggleMenu()"
+        >
+            <span class="menu-bar"></span>
+            <span class="menu-bar"></span>
+            <span class="menu-bar"></span>
+        </button>
     </div>
 </header>
+
+@if (isMenuOpen()) {
+  <div class="navbar-backdrop" (click)="closeMenu()"></div>
+}

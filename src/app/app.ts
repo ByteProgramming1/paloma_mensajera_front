@@ -2,10 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FooterComponent } from './layout/footer/footer';
 import { AuthService } from './core/auth.service';
 import { RouterOutlet } from '@angular/router';
+import { NgxSonnerToaster, toast } from 'ngx-sonner';
 
 @Component({
   selector: 'app-root',
-  imports: [FooterComponent, RouterOutlet],
+  imports: [FooterComponent, RouterOutlet, NgxSonnerToaster],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

@@ -22,6 +22,8 @@
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 16px;
+    text-decoration: none;
+    color: #ffffff;
 }
 
 .badge-icon {
@@ -40,4 +42,30 @@
     font-size: 14px;
     font-weight: 400;
     opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .catalog-banner {
+    padding: 22px 20px;
+    border-radius: 18px;
+  }
+
+  .catalog-banner-title {
+    font-size: 21px;
+  }
+
+  .catalog-banner-subtitle {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .catalog-banner-title {
+    font-size: 19px;
+  }
+
+  .catalog-banner-badge {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
 }

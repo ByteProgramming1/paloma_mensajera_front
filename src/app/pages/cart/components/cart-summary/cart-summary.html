@@ -1,0 +1,22 @@
+<aside class="cart-summary">
+  <h2 class="cart-summary-title">Resumen del pedido</h2>
+
+  <div class="cart-summary-row">
+    <span>Subtotal</span>
+    <span>${{ formatPrice(subtotal()) }}</span>
+  </div>
+  <div class="cart-summary-row">
+    <span>Total de Artículos</span>
+    <span>{{ totalItems() }}</span>
+  </div>
+
+  <div class="cart-summary-total">
+    <span>Total</span>
+    <span>${{ formatPrice(subtotal()) }}</span>
+  </div>
+
+  <button type="button" class="checkout-button" (click)="checkout.emit()">
+    Continuar con el pedido
+  </button>
+  <p class="checkout-note">El pago se realiza únicamente por nequi</p>
+</aside>

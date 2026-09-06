@@ -73,13 +73,13 @@
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
-    transition: color 0.15s ease-int, background 0.15s ease-int;
+    transition: color 0.15s ease-in-out, background 0.15s ease-in-out;
+    white-space: nowrap;
 }
 
 .nav-link:hover {
     color: var(--nav-ink);
     background: var(--nav-soft-gray);
-    transition: color 0.15s ease-in-out, background 0.15s ease-in-out;
 }
 
 .nav-link--active {
@@ -152,4 +152,125 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+/* ===== Menú hamburguesa ===== */
+
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.menu-toggle:hover {
+    background: var(--nav-soft-gray);
+}
+
+.menu-bar {
+    width: 20px;
+    height: 2px;
+    background: var(--nav-ink);
+    border-radius: 999px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.menu-toggle--open .menu-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.menu-toggle--open .menu-bar:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle--open .menu-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.navbar-backdrop {
+    display: none;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 1280px) {
+    .navbar {
+        padding: 14px 3rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .navbar {
+        padding: 12px 1.5rem;
+        gap: 12px;
+    }
+
+    .navbar-brand-text small {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 12px 1rem;
+    }
+
+    .menu-toggle {
+        display: inline-flex;
+    }
+
+    .navbar-nav {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(280px, 80vw);
+        background: var(--nav-white);
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: 4px;
+        padding: 88px 20px 24px;
+        transform: translateX(100%);
+        transition: transform 0.25s ease;
+        z-index: 40;
+        box-shadow: -8px 0 24px rgba(20, 35, 78, 0.12);
+    }
+
+    .navbar-nav--open {
+        transform: translateX(0);
+    }
+
+    .nav-link {
+        width: 100%;
+        text-align: left;
+        padding: 12px 14px;
+        font-size: 15px;
+    }
+
+    .navbar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 35, 78, 0.35);
+        z-index: 35;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar-brand-text strong {
+        font-size: 14px;
+    }
+
+    .navbar-logo {
+        width: 34px;
+        height: 34px;
+    }
 }

@@ -1,5 +1,24 @@
 .catalog-page {
     width: 100%;
+    max-width: 1600px;
     margin: 0 auto;
     padding: 24px 16rem;
+}
+
+@media (max-width: 1280px) {
+    .catalog-page {
+        padding: 24px 3rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .catalog-page {
+        padding: 20px 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .catalog-page {
+        padding: 16px 1rem;
+    }
 }

@@ -94,6 +94,8 @@
   align-items: center;
   justify-content: space-between;
   margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .product-price {
@@ -137,4 +139,19 @@
 .cart-icon {
   width: 16px;
   height: 16px;
+}
+
+@media (max-width: 480px) {
+  .product-title {
+    font-size: 15px;
+  }
+
+  .product-description {
+    font-size: 12px;
+    min-height: auto;
+  }
+
+  .product-price {
+    font-size: 15px;
+  }
 }

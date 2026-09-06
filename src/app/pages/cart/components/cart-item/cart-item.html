@@ -1,0 +1,34 @@
+<article class="cart-item">
+  <img class="cart-item-image" [src]="item().product.imageUrl" [alt]="item().product.name" />
+
+  <div class="cart-item-info">
+    <h3 class="cart-item-name">{{ item().product.name }}</h3>
+    <p class="cart-item-unit-price">Precio unitario ${{ formatPrice(item().product.price) }}</p>
+
+    <div class="cart-item-quantity">
+      <button type="button" (click)="decrement.emit(item().product.id)">−</button>
+      <span>{{ item().quantity }}</span>
+      <button type="button" (click)="increment.emit(item().product.id)">+</button>
+    </div>
+  </div>
+
+  <div class="cart-item-actions">
+    <button
+      type="button"
+      class="cart-item-remove"
+      aria-label="Quitar producto"
+      (click)="remove.emit(item().product.id)"
+    >
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M4 7H20M9 7V5C9 4.4 9.4 4 10 4H14C14.6 4 15 4.4 15 5V7M18 7L17.2 19C17.1 19.6 16.6 20 16 20H8C7.4 20 6.9 19.6 6.8 19L6 7"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+    <span class="cart-item-line-total">${{ formatPrice(lineTotal) }}</span>
+  </div>
+</article>

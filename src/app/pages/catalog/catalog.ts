@@ -1,9 +1,11 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { NavbarComponent } from '../../layout/navbar/navbar';
 import { CatalogBannerComponent } from './components/catalog-banner/catalog-banner';
 import { CatalogFiltersComponent, CatalogFilterState } from './components/catalog-filters/catalog-filters';
 import { ProductGalleryComponent } from './components/product-gallery/product-gallery';
 import { Product } from '../../core/api.models';
+import { CartService } from '../../core/cart.service';
+import { toast } from 'ngx-sonner';
 
 @Component({
   selector: 'page-catalog',
@@ -12,6 +14,7 @@ import { Product } from '../../core/api.models';
   styleUrl: './catalog.css'
 })
 export class Catalog {
+  private readonly cart = inject(CartService);
   protected readonly products = signal<Product[]>([
     {
       id: '1',
@@ -58,6 +61,10 @@ export class Catalog {
   }
 
   protected onAddToCart(productId: string): void {
-    console.log('Agregar al carrito:', productId);
+    const product = this.products().find((p) => p.id === productId);
+    if (product) {
+      this.cart.add(product);
+      toast.success(`${product.name} agregado al carrito`);
+    }
   }
 }
