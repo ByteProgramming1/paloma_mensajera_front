@@ -19,6 +19,6 @@ describe('App', () => {
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Haz llegar un detalle');
-    expect(compiled.querySelector('button')?.textContent).toContain('Ingresar con mi correo institucional');
+    expect(compiled.querySelector('button')?.textContent).toContain('Ingresar');
   });
 });

@@ -84,13 +84,34 @@
     </div>
     <div class="login-card">
       <img class="access-logo" src="assets/logos/paloma-mensajera.png" alt="" aria-hidden="true" />
-      <h3>Paloma Mensajera</h3>
-      <p class="login-caption">Detalles que llegan a donde deben.</p>
-      <button type="button" class="microsoft-button" [disabled]="isLoading()" (click)="login()">
-        <span class="microsoft-icon" aria-hidden="true">⊞</span>
-        {{ isLoading() ? 'Conectando...' : 'Ingresar con mi correo institucional' }}
-      </button>
-      <div class="notice" role="note"><span class="info-icon" aria-hidden="true">i</span><span>Solo puedes acceder con tu correo institucional. Si tu cuenta no está habilitada, comunícate con el equipo organizador.</span></div>
+      @if (authMode() === 'verify') {
+        <h3>Ingresa tu código</h3>
+        <p class="login-caption">Revisa tu correo institucional y escribe el código de 6 dígitos.</p>
+        <label class="field-label" for="verification-code">Código de verificación</label>
+        <input id="verification-code" class="auth-input auth-input--code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [value]="code()" (input)="updateField('code', $event)" placeholder="000000" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Verificando...' : 'Verificar código' }}
+        </button>
+        <button type="button" class="back-action" (click)="setAuthMode('register')">Volver y cambiar mis datos</button>
+      } @else {
+        <h3>{{ authMode() === 'login' ? 'Ingresa a tu cuenta' : 'Crea tu cuenta' }}</h3>
+        <p class="login-caption">Usa tu correo institucional para continuar.</p>
+        @if (authMode() === 'register') {
+          <label class="field-label" for="account-name">Nombre completo</label>
+          <input id="account-name" class="auth-input" autocomplete="name" [value]="name()" (input)="updateField('name', $event)" placeholder="Tu nombre completo" />
+        }
+        <label class="field-label" for="account-email">Correo institucional</label>
+        <input id="account-email" class="auth-input" type="email" autocomplete="email" [value]="email()" (input)="updateField('email', $event)" placeholder="nombre@escuelaing.edu.co" />
+        <label class="field-label" for="account-password">Contraseña</label>
+        <input id="account-password" class="auth-input" type="password" autocomplete="current-password" [value]="password()" (input)="updateField('password', $event)" placeholder="Tu contraseña" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Conectando...' : authMode() === 'login' ? 'Ingresar' : 'Solicitar código' }}
+        </button>
+        <button type="button" class="mode-action" (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')">
+          {{ authMode() === 'login' ? '¿Aún no tienes cuenta? Regístrate' : 'Ya tengo una cuenta, ingresar' }}
+        </button>
+      }
+      <div class="notice" role="note"><span class="info-icon" aria-hidden="true">i</span><span>Usa un correo institucional autorizado. El código es temporal y no debes compartirlo.</span></div>
       <p class="privacy">Tus datos y dedicatorias se tratan de forma confidencial.</p>
       @if (errorMessage()) { <p class="feedback feedback--error" role="alert">{{ errorMessage() }}</p> }
       @if (successMessage()) { <p class="feedback feedback--success" role="status">{{ successMessage() }}</p> }

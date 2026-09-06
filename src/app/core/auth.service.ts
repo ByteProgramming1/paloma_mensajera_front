@@ -2,10 +2,11 @@ import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { AuthSession, LoginResponse, UserRole } from './api.models';
+import { AuthSession, LoginResponse, RegisterResponse, UserRole } from './api.models';
 
 const SESSION_KEY = 'paloma_session';
 interface LoginPayload { email: string; password: string; }
+interface RegisterPayload { email: string; name: string; password: string; }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -17,8 +18,12 @@ export class AuthService {
     return this.setSession(await firstValueFrom(this.api.post<LoginResponse>('/auth/login', payload)));
   }
 
-  async loginWithMicrosoft(idToken: string): Promise<AuthSession> {
-    return this.setSession(await firstValueFrom(this.api.post<LoginResponse>('/auth/microsoft', { idToken })));
+  async register(payload: RegisterPayload): Promise<RegisterResponse> {
+    return firstValueFrom(this.api.post<RegisterResponse>('/auth/register', payload));
+  }
+
+  async verifyEmail(email: string, code: string): Promise<AuthSession> {
+    return this.setSession(await firstValueFrom(this.api.post<LoginResponse>('/auth/verify-email', { email, code })));
   }
 
   logout(): void {

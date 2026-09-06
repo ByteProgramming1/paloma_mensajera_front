@@ -1,11 +1,6 @@
-import { isPlatformBrowser } from '@angular/common';
-import { Component, inject, PLATFORM_ID, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FooterComponent } from './footer/footer';
 import { AuthService } from './core/auth.service';
-
-interface WindowWithConfig extends Window {
-  PALOMA_CONFIG?: { apiUrl?: string; microsoftClientId?: string; microsoftTenantId?: string };
-}
 
 @Component({
   selector: 'app-root',
@@ -15,46 +10,47 @@ interface WindowWithConfig extends Window {
 })
 export class App {
   private readonly auth = inject(AuthService);
-  private readonly platformId = inject(PLATFORM_ID);
-  private msalClient?: import('@azure/msal-browser').PublicClientApplication;
 
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
+  protected readonly authMode = signal<'login' | 'register' | 'verify'>('login');
+  protected readonly email = signal('');
+  protected readonly name = signal('');
+  protected readonly password = signal('');
+  protected readonly code = signal('');
 
-  protected async login(): Promise<void> {
+  protected setAuthMode(mode: 'login' | 'register' | 'verify'): void {
+    this.authMode.set(mode);
     this.errorMessage.set('');
     this.successMessage.set('');
-    if (!isPlatformBrowser(this.platformId)) return;
+  }
 
-    const config = (window as WindowWithConfig).PALOMA_CONFIG;
-    if (!config?.microsoftClientId) {
-      this.errorMessage.set('Configura el Client ID de Microsoft Entra para continuar.');
-      return;
-    }
+  protected updateField(field: 'email' | 'name' | 'password' | 'code', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this[field].set(value);
+  }
 
+  protected async submitAuth(): Promise<void> {
+    this.errorMessage.set('');
+    this.successMessage.set('');
     this.isLoading.set(true);
     try {
-      const { PublicClientApplication } = await import('@azure/msal-browser');
-      this.msalClient ??= new PublicClientApplication({
-        auth: {
-          clientId: config.microsoftClientId,
-          authority: `https://login.microsoftonline.com/${config.microsoftTenantId ?? 'common'}`,
-          redirectUri: window.location.origin,
-        },
-        cache: { cacheLocation: 'sessionStorage' },
-      });
-      await this.msalClient.initialize();
-      const result = await this.msalClient.loginPopup({
-        scopes: ['openid', 'profile', 'email'],
-      });
-      const session = await this.auth.loginWithMicrosoft(result.idToken);
-      this.successMessage.set(`Bienvenido, ${session.user.name}.`);
+      if (this.authMode() === 'login') {
+        const session = await this.auth.login({ email: this.email(), password: this.password() });
+        this.successMessage.set(`Bienvenido, ${session.user.name}.`);
+      } else if (this.authMode() === 'register') {
+        const response = await this.auth.register({ email: this.email(), name: this.name(), password: this.password() });
+        this.successMessage.set(response.message);
+        this.authMode.set('verify');
+      } else {
+        const session = await this.auth.verifyEmail(this.email(), this.code());
+        this.successMessage.set(`Cuenta verificada. Bienvenido, ${session.user.name}.`);
+      }
     } catch (error: unknown) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible iniciar sesión.');
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible completar la solicitud.');
     } finally {
       this.isLoading.set(false);
     }
   }
-
 }

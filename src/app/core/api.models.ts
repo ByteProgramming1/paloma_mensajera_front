@@ -19,6 +19,11 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+export interface RegisterResponse {
+  message: string;
+  email: string;
+}
+
 export interface Product {
   id: string;
   name: string;
