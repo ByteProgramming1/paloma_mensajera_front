@@ -30,6 +30,21 @@ export interface RegisterResponse {
 
 export type ProductType = 'COMBO' | 'ADICIONAL';
 
+export interface AddOnOption {
+  id: string;
+  groupId: string;
+  name: string;
+  imageUrl?: string | null;
+  isActive: boolean;
+}
+
+export interface ProductAddOnGroup {
+  id: string;
+  productId: string;
+  name: string;
+  options: AddOnOption[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -38,11 +53,13 @@ export interface Product {
   stock: number;
   isActive: boolean;
   imageUrl?: string | null;
+  addOnGroups?: ProductAddOnGroup[];
 }
 
 export interface CartItem {
   productId: string;
   quantity: number;
+  selectedAddOnOptionId?: string;
 }
 
 export type BuyerType = 'ESTUDIANTE' | 'PROFESOR' | 'ADMINISTRATIVO';
@@ -93,6 +110,7 @@ export interface OrderItem {
   productName?: string;
   quantity: number;
   unitPrice: number;
+  selectedAddOnOption?: { id: string; name: string } | null;
 }
 
 export interface MessageReview {

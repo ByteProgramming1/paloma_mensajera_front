@@ -35,16 +35,31 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
                 {{ order.recipientFullName }}
                 <span class="mono-figure ml-2 text-[13px] text-text-secondary">{{ order.orderCode }}</span>
               </p>
-              <app-order-status-badge [status]="order.status" />
+              <div class="flex items-center gap-2">
+                @if (order.isAnonymous) {
+                  <span class="rounded-full bg-bg-base px-2.5 py-1 text-[12px] font-semibold text-text-secondary">🔒 Anónimo</span>
+                }
+                <app-order-status-badge [status]="order.status" />
+              </div>
             </div>
             @if (order.selfPickup && order.deliveryNotes) {
               <p class="field-hint">Nota del comprador: {{ order.deliveryNotes }}</p>
             }
-            @if (!order.isAnonymous) {
+            @if (order.isAnonymous) {
+              <p class="field-hint">Remitente: pidió entrega anónima — no se muestra su nombre.</p>
+            } @else {
               <p class="field-hint">Remitente: {{ order.buyerFullName }}</p>
             }
+            @if (order.letterContent) {
+              <div class="rounded-[var(--radius-sm)] bg-bg-base p-3">
+                <p class="field-label mb-1">Dedicatoria</p>
+                <p class="text-[14px] whitespace-pre-wrap text-text-primary">{{ order.letterContent }}</p>
+              </div>
+            }
             <ul class="flex flex-col gap-1 text-[14px] text-text-secondary">
-              @for (item of order.items; track item.id) { <li>{{ item.quantity }}× {{ item.productName ?? item.productId }}</li> }
+              @for (item of order.items; track item.id) {
+                <li>{{ item.quantity }}× {{ item.productName ?? item.productId }}{{ item.selectedAddOnOption ? ' — ' + item.selectedAddOnOption.name : '' }}</li>
+              }
             </ul>
 
             @if (!DELIVERABLE_SET.has(order.status)) {
