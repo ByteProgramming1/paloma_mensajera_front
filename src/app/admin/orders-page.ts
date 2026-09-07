@@ -1,4 +1,4 @@
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -11,7 +11,7 @@ type Tab = 'pagos' | 'todos';
 
 @Component({
   selector: 'app-admin-orders-page',
-  imports: [FormsModule, CurrencyPipe, ConfirmAction, OrderStatusBadge],
+  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge],
   template: `
     <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Pedidos</h1>
     <p class="mb-6 max-w-[640px] text-[15px] text-text-secondary">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
@@ -40,6 +40,43 @@ type Tab = 'pagos' | 'todos';
             <p class="field-hint">Destinatario: {{ order.recipientFullName }} · {{ order.selfPickup ? 'Autorrecogida' : 'Entrega a terceros' }} · Canal: {{ order.salesChannel }}</p>
             <p class="italic text-[14px] text-text-primary">“{{ order.letterContent }}”</p>
             <p class="mono-figure text-[16px] text-brand-magenta">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+
+            @if (tab() === 'todos') {
+              <div class="grid gap-x-6 gap-y-1 rounded-[var(--radius-sm)] bg-bg-base p-3 text-[13px] text-text-secondary sm:grid-cols-2">
+                <p><span class="field-label">Fecha</span> {{ order.createdAt | date:'medium' }}</p>
+                <p><span class="field-label">Anónimo</span> {{ order.isAnonymous ? 'Sí' : 'No' }}</p>
+                <p><span class="field-label">Correo comprador</span> {{ order.buyerEmail ?? '—' }}</p>
+                <p><span class="field-label">Teléfono comprador</span> {{ order.buyerPhone ?? '—' }}</p>
+                <p><span class="field-label">Tipo comprador</span> {{ order.buyerType ?? '—' }}</p>
+                <p><span class="field-label">Carrera / área comprador</span> {{ order.buyerCareerOrArea ?? '—' }}</p>
+                <p><span class="field-label">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
+                <p><span class="field-label">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
+                <p><span class="field-label">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
+                <p><span class="field-label">N° rifa</span> {{ order.raffleNumber ?? '—' }}</p>
+                <p><span class="field-label">Notificado por Teams</span> {{ order.teamsNotificationSent ? 'Sí' : 'No' }}</p>
+                <p><span class="field-label">Vendedor asistió</span> {{ order.assistedBySellerId ?? '—' }}</p>
+                <p>
+                  <span class="field-label">Dedicatoria</span>
+                  {{ order.messageReview?.humanReviewStatus ?? '—' }}
+                  @if (order.messageReview?.rejectionReason) { ({{ order.messageReview!.rejectionReason }}) }
+                </p>
+                <p>
+                  <span class="field-label">Pago</span>
+                  @if (order.payment) {
+                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod }}
+                    @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
+                  } @else { Sin registro de pago }
+                </p>
+                <div class="sm:col-span-2">
+                  <span class="field-label">Productos</span>
+                  <ul>
+                    @for (item of order.items; track item.id) {
+                      <li>{{ item.quantity }}× {{ item.productName ?? item.productId }} · {{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0' }}{{ item.selectedAddOnOption ? ' — ' + item.selectedAddOnOption.name : '' }}</li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            }
 
             @if (tab() === 'pagos' && order.status === 'PAYMENT_PENDING') {
               <div class="flex flex-wrap items-center gap-3">
