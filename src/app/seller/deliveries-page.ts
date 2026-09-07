@@ -34,7 +34,7 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
           <li class="card-surface flex flex-col gap-3 p-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-semibold text-text-primary">
-                {{ order.recipientFullName }}
+                <span class="font-normal text-text-secondary">Entrega a:</span> {{ order.recipientFullName }}
                 <span class="mono-figure ml-2 text-[13px] text-text-secondary">{{ order.orderCode }}</span>
               </p>
               <div class="flex items-center gap-2">

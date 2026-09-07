@@ -20,6 +20,10 @@ export class ApiClientService {
     return this.http.patch<T>(this.url(path), body).pipe(catchError(this.handleError));
   }
 
+  delete<T>(path: string): Observable<T> {
+    return this.http.delete<T>(this.url(path)).pipe(catchError(this.handleError));
+  }
+
   upload<T>(path: string, file: File): Observable<T> {
     const formData = new FormData();
     formData.append('file', file);

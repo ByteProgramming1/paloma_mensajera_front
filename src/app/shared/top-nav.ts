@@ -77,6 +77,7 @@ export class TopNav {
         { path: '/admin/sorteo', label: 'Sorteo' },
         { path: '/admin/usuarios', label: 'Usuarios' },
         { path: '/admin/productos', label: 'Catálogo' },
+        { path: '/admin/acompanantes', label: 'Acompañantes' },
         { path: '/admin/metricas', label: 'Métricas' },
       ];
     }

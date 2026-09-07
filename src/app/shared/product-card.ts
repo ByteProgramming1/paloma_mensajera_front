@@ -1,11 +1,10 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Product } from '../core/api.models';
 
 @Component({
   selector: 'app-product-card',
-  imports: [CurrencyPipe, FormsModule],
+  imports: [CurrencyPipe],
   template: `
     <article class="card-surface flex w-full max-w-[320px] flex-col gap-4 p-5">
       <div class="flex h-40 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
@@ -30,13 +29,29 @@ import { Product } from '../core/api.models';
         <p class="field-hint">Quedan {{ product().stock }} unidades</p>
       }
       @if (quantity() > 0 && addOnGroup(); as group) {
-        <label class="field">
+        <div class="field">
           <span class="field-label">{{ group.name }}</span>
-          <select class="field-input" [ngModel]="selectedAddOnOptionId() ?? ''" (ngModelChange)="addOnOptionChange.emit($event)">
-            <option value="" disabled>Selecciona una opción</option>
-            @for (option of group.options; track option.id) { <option [value]="option.id">{{ option.name }}</option> }
-          </select>
-        </label>
+          <div class="grid grid-cols-3 gap-2">
+            @for (option of group.options; track option.id) {
+              <button
+                type="button"
+                class="flex flex-col items-center gap-1 rounded-[var(--radius-sm)] border-2 p-1.5 transition"
+                [class]="option.id === selectedAddOnOptionId() ? 'border-brand-magenta bg-brand-magenta/5' : 'border-border-default'"
+                (click)="addOnOptionChange.emit(option.id)"
+              >
+                <div class="flex size-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-base">
+                  @if (option.imageUrl) {
+                    <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-cover" />
+                  } @else {
+                    <span class="text-xl" aria-hidden="true">💌</span>
+                  }
+                </div>
+                <span class="line-clamp-1 text-[11px] text-text-secondary">{{ option.name }}</span>
+              </button>
+            }
+          </div>
+          @if (!selectedAddOnOptionId()) { <p class="field-hint mt-1">Elige una opción</p> }
+        </div>
       }
     </article>
   `,

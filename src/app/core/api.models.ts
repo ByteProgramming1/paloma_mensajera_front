@@ -40,7 +40,6 @@ export interface AddOnOption {
 
 export interface ProductAddOnGroup {
   id: string;
-  productId: string;
   name: string;
   options: AddOnOption[];
 }
