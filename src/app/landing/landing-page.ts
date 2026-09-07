@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FooterComponent } from '../footer/footer';
 import { AuthService } from '../core/auth.service';
 import { UserRole } from '../core/api.models';
@@ -23,13 +23,22 @@ export class LandingPage {
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
-  protected readonly authMode = signal<'login' | 'register' | 'verify'>('login');
+  protected readonly authMode = signal<'login' | 'register' | 'verify' | 'forgot' | 'reset'>('login');
   protected readonly email = signal('');
   protected readonly name = signal('');
   protected readonly password = signal('');
   protected readonly code = signal('');
+  protected readonly resetToken = signal('');
 
-  protected setAuthMode(mode: 'login' | 'register' | 'verify'): void {
+  constructor() {
+    const token = inject(ActivatedRoute).snapshot.queryParamMap.get('resetToken');
+    if (token) {
+      this.resetToken.set(token);
+      this.authMode.set('reset');
+    }
+  }
+
+  protected setAuthMode(mode: 'login' | 'register' | 'verify' | 'forgot' | 'reset'): void {
     this.authMode.set(mode);
     this.errorMessage.set('');
     this.successMessage.set('');
@@ -52,9 +61,17 @@ export class LandingPage {
         const response = await this.auth.register({ email: this.email(), name: this.name(), password: this.password() });
         this.successMessage.set(response.message);
         this.authMode.set('verify');
-      } else {
+      } else if (this.authMode() === 'verify') {
         const session = await this.auth.verifyEmail(this.email(), this.code());
         this.goHome(session.roleSlug);
+      } else if (this.authMode() === 'forgot') {
+        const response = await this.auth.forgotPassword(this.email());
+        this.successMessage.set(response.message);
+      } else {
+        const response = await this.auth.resetPassword(this.resetToken(), this.password());
+        this.successMessage.set(response.message);
+        this.password.set('');
+        this.authMode.set('login');
       }
     } catch (error: unknown) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible completar la solicitud.');

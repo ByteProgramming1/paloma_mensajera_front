@@ -93,6 +93,23 @@
           {{ isLoading() ? 'Verificando...' : 'Verificar código' }}
         </button>
         <button type="button" class="back-action" (click)="setAuthMode('register')">Volver y cambiar mis datos</button>
+      } @else if (authMode() === 'forgot') {
+        <h3>Recupera tu contraseña</h3>
+        <p class="login-caption">Te enviaremos un enlace a tu correo institucional.</p>
+        <label class="field-label" for="recovery-email">Correo institucional</label>
+        <input id="recovery-email" class="auth-input" type="email" autocomplete="email" [value]="email()" (input)="updateField('email', $event)" placeholder="nombre@escuelaing.edu.co" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Enviando...' : 'Enviar enlace' }}
+        </button>
+        <button type="button" class="back-action" (click)="setAuthMode('login')">Volver a iniciar sesión</button>
+      } @else if (authMode() === 'reset') {
+        <h3>Crea una nueva contraseña</h3>
+        <p class="login-caption">Elige una contraseña de al menos 8 caracteres.</p>
+        <label class="field-label" for="new-password">Nueva contraseña</label>
+        <input id="new-password" class="auth-input" type="password" autocomplete="new-password" [value]="password()" (input)="updateField('password', $event)" placeholder="Tu nueva contraseña" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Actualizando...' : 'Cambiar contraseña' }}
+        </button>
       } @else {
         <h3>{{ authMode() === 'login' ? 'Ingresa a tu cuenta' : 'Crea tu cuenta' }}</h3>
         <p class="login-caption">Usa tu correo institucional para continuar.</p>
@@ -110,6 +127,9 @@
         <button type="button" class="mode-action" (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')">
           {{ authMode() === 'login' ? '¿Aún no tienes cuenta? Regístrate' : 'Ya tengo una cuenta, ingresar' }}
         </button>
+        @if (authMode() === 'login') {
+          <button type="button" class="back-action" (click)="setAuthMode('forgot')">¿Olvidaste tu contraseña?</button>
+        }
         @if (authMode() === 'register') {
           <button type="button" class="back-action" (click)="setAuthMode('verify')">Ya tengo un código de verificación</button>
         }
