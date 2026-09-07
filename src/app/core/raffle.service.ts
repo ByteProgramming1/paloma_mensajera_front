@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClientService } from './api-client.service';
-import { RaffleDrawRequest, RaffleDrawResult, RaffleNumber } from './api.models';
+import { RaffleConfigureResult, RaffleDrawHistoryEntry, RaffleDrawRequest, RaffleDrawResult, RaffleNumber } from './api.models';
 
 @Injectable({ providedIn: 'root' })
 export class RaffleService {
@@ -8,5 +8,6 @@ export class RaffleService {
   map() { return this.api.get<RaffleNumber[]>('/raffle-numbers'); }
   eligibleForDraw() { return this.api.get<RaffleNumber[]>('/raffle-numbers/eligible-for-draw'); }
   draw(payload: RaffleDrawRequest = {}) { return this.api.post<RaffleDrawResult>('/raffle-numbers/draw', payload); }
-  history() { return this.api.get<RaffleDrawResult[]>('/raffle-numbers/draw-history'); }
+  history() { return this.api.get<RaffleDrawHistoryEntry[]>('/raffle-numbers/draw-history'); }
+  configure(count: number) { return this.api.post<RaffleConfigureResult>('/raffle-numbers/configure', { count }); }
 }

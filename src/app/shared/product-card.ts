@@ -15,9 +15,6 @@ import { Product } from '../core/api.models';
         }
       </div>
       <p class="font-semibold text-[18px] text-text-primary">{{ product().name }}</p>
-      @if (product().description) {
-        <p class="text-[14px] leading-[1.45] text-text-secondary">{{ product().description }}</p>
-      }
       <div class="flex h-10 items-center justify-between">
         <p class="mono-figure text-[17px] text-brand-magenta">{{ product().price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
         <div class="flex items-center gap-3 rounded-[var(--radius-sm)] border border-border-default px-2.5 py-1.5">
