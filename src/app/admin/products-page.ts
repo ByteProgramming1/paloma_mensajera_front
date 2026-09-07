@@ -34,10 +34,6 @@ import { ProductsService } from '../core/products.service';
           <span class="field-label">Stock</span>
           <input class="field-input" type="number" min="0" required [(ngModel)]="draft.stock" name="stock" />
         </label>
-        <label class="field sm:col-span-2">
-          <span class="field-label">Descripción</span>
-          <input class="field-input" [(ngModel)]="draft.description" name="description" />
-        </label>
         <button type="submit" class="btn-primary self-end sm:col-span-2">Agregar al catálogo</button>
       </form>
       <p class="field-hint mt-3">La imagen se sube en un segundo paso, desde la tarjeta del producto aquí abajo (el archivo se guarda en almacenamiento de objetos, no en la base de datos).</p>
@@ -96,12 +92,11 @@ export class AdminProductsPage {
   protected readonly errorMessage = signal('');
   protected readonly uploadingId = signal<string | null>(null);
 
-  protected draft: { name: string; type: ProductType; price: number; stock: number; description: string } = {
+  protected draft: { name: string; type: ProductType; price: number; stock: number } = {
     name: '',
     type: 'COMBO',
     price: 0,
     stock: 0,
-    description: '',
   };
 
   constructor() {
@@ -123,7 +118,7 @@ export class AdminProductsPage {
     this.errorMessage.set('');
     try {
       await firstValueFrom(this.productsApi.create({ ...this.draft, isActive: true }));
-      this.draft = { name: '', type: 'COMBO', price: 0, stock: 0, description: '' };
+      this.draft = { name: '', type: 'COMBO', price: 0, stock: 0 };
       this.load();
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear el producto.');

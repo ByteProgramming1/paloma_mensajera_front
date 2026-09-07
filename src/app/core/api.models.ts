@@ -37,7 +37,6 @@ export interface Product {
   price: number;
   stock: number;
   isActive: boolean;
-  description?: string | null;
   imageUrl?: string | null;
 }
 
@@ -168,9 +167,28 @@ export interface RaffleDrawRequest {
   drawBatchId?: string;
 }
 
-// GET /raffle-numbers/draw-history y POST /raffle-numbers/draw usan un serializador propio,
-// distinto (y anidado bajo deliveryDetail) del resto de endpoints de /orders.
-export interface RaffleDrawOrderSummary {
+export interface RaffleConfigureResult {
+  totalNumbers: number;
+  numbersCreated: number;
+}
+
+// POST /raffle-numbers/draw y GET /raffle-numbers/draw-history usan formas distintas entre sí
+// (verificado contra el server real, no coinciden con lo que sugiere el SDD).
+
+// Respuesta de POST /raffle-numbers/draw: plana, sin envolver en `order`.
+export interface RaffleDrawItem { productName: string; quantity: number; }
+
+export interface RaffleDrawResult {
+  raffleNumber: number;
+  drawBatchId: string;
+  drawnAt: string;
+  buyerFullName?: string | null;
+  recipientFullName: string;
+  items: RaffleDrawItem[];
+}
+
+// Respuesta de GET /raffle-numbers/draw-history: sí anida bajo order.deliveryDetail.
+export interface RaffleDrawHistoryOrderSummary {
   id: string;
   orderCode: string;
   status: OrderStatus;
@@ -183,7 +201,7 @@ export interface RaffleDrawOrderSummary {
   };
 }
 
-export interface RaffleDrawResult {
+export interface RaffleDrawHistoryEntry {
   id: string;
   drawBatchId: string;
   raffleNumberId: string;
@@ -191,7 +209,7 @@ export interface RaffleDrawResult {
   drawnAt: string;
   drawnByAdminId?: string | null;
   raffleNumber: { number: number };
-  order: RaffleDrawOrderSummary;
+  order: RaffleDrawHistoryOrderSummary;
 }
 
 export type DeliveryStatus = 'IN_PREPARATION' | 'IN_ROUTE' | 'DELIVERED' | 'UNDELIVERED_RETRY' | 'CANCELLED';
