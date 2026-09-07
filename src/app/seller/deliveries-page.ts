@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { Order } from '../core/api.models';
@@ -13,22 +13,24 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
   imports: [FormsModule, ConfirmAction, OrderStatusBadge],
   template: `
     <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Entregas</h1>
-    <p class="mb-6 max-w-[620px] text-[15px] text-text-secondary">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado. Busca por el nombre de quien llega a recoger si necesitas encontrar una en particular.</p>
+    <p class="mb-6 max-w-[620px] text-[15px] text-text-secondary">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado.</p>
 
-    <div class="mb-6 flex flex-wrap gap-2">
-      <input class="field-input max-w-[320px]" [(ngModel)]="search" (keyup.enter)="searchByName()" placeholder="Buscar destinatario por nombre…" />
-      <button type="button" class="btn-secondary" (click)="searchByName()">Buscar</button>
-      <button type="button" class="btn-ghost" (click)="loadPending()">Ver todas las entregas pendientes</button>
+    <div class="mb-6 flex flex-wrap items-center gap-2">
+      <input class="field-input max-w-[320px]" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Buscar destinatario por nombre…" />
+      <label class="flex items-center gap-2 text-[14px] text-text-secondary">
+        <input type="checkbox" [ngModel]="showAll()" (ngModelChange)="toggleShowAll($event)" />
+        Ver todas (entregadas y pendientes)
+      </label>
     </div>
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
-    } @else if (orders().length === 0) {
+    } @else if (filteredOrders().length === 0) {
       <p class="field-hint">No hay pedidos para mostrar con ese criterio.</p>
     } @else {
       <ul class="flex flex-col gap-4">
-        @for (order of orders(); track order.id) {
+        @for (order of filteredOrders(); track order.id) {
           <li class="card-surface flex flex-col gap-3 p-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-semibold text-text-primary">
@@ -64,7 +66,7 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
 
             @if (!DELIVERABLE_SET.has(order.status)) {
               <p class="field-hint">Este pedido aún no está pagado — no se puede entregar todavía.</p>
-            } @else if (order.status === 'IN_ROUTE' || order.status === 'DELIVERED') {
+            } @else {
               <div class="flex flex-wrap items-end gap-3">
                 <label class="field">
                   <span class="field-label">Nombre de quien recibió</span>
@@ -75,13 +77,6 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
                 }
                 @if (!order.selfPickup && !order.teamsNotificationSent) {
                   <button type="button" class="btn-secondary" (click)="notify(order)">Notificar por Teams</button>
-                }
-              </div>
-            } @else {
-              <div class="flex flex-wrap gap-3">
-                <button type="button" class="btn-secondary" (click)="markInRoute(order)">Marcar en camino</button>
-                @if (!order.selfPickup && !order.teamsNotificationSent) {
-                  <button type="button" class="btn-ghost" (click)="notify(order)">Notificar por Teams</button>
                 }
               </div>
             }
@@ -95,36 +90,34 @@ export class DeliveriesPage {
   private readonly ordersApi = inject(OrdersService);
   protected readonly DELIVERABLE_SET = DELIVERABLE;
 
-  protected search = '';
+  protected readonly search = signal('');
+  protected readonly showAll = signal(false);
   protected readonly orders = signal<Order[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly receivedByDrafts: Record<string, string> = {};
 
+  protected readonly filteredOrders = computed(() => {
+    const query = this.search().trim().toLowerCase();
+    return this.orders().filter((order) => !query || order.recipientFullName.toLowerCase().includes(query));
+  });
+
   constructor() {
-    this.loadPending();
+    this.load();
   }
 
-  protected async loadPending(): Promise<void> {
+  protected toggleShowAll(value: boolean): void {
+    this.showAll.set(value);
+    this.load();
+  }
+
+  protected async load(): Promise<void> {
     this.isLoading.set(true);
     this.errorMessage.set('');
     try {
-      this.setOrders(await firstValueFrom(this.ordersApi.myDeliveries()));
+      this.setOrders(await firstValueFrom(this.ordersApi.myDeliveries(this.showAll())));
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cargar tus entregas.');
-    } finally {
-      this.isLoading.set(false);
-    }
-  }
-
-  protected async searchByName(): Promise<void> {
-    if (!this.search.trim()) return this.loadPending();
-    this.isLoading.set(true);
-    this.errorMessage.set('');
-    try {
-      this.setOrders(await firstValueFrom(this.ordersApi.list({ recipientName: this.search.trim() })));
-    } catch (error) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible buscar ese destinatario.');
     } finally {
       this.isLoading.set(false);
     }
@@ -137,23 +130,13 @@ export class DeliveriesPage {
     }
   }
 
-  protected async markInRoute(order: Order): Promise<void> {
-    await firstValueFrom(this.ordersApi.updateDeliveryStatus(order.id, 'IN_ROUTE'));
-    this.refresh();
-  }
-
   protected async markDelivered(order: Order): Promise<void> {
     await firstValueFrom(this.ordersApi.updateDeliveryStatus(order.id, 'DELIVERED', { receivedBy: this.receivedByDrafts[order.id] }));
-    this.refresh();
+    this.load();
   }
 
   protected async notify(order: Order): Promise<void> {
     await firstValueFrom(this.ordersApi.notifyTeams(order.id));
-    this.refresh();
-  }
-
-  private refresh(): void {
-    if (this.search.trim()) this.searchByName();
-    else this.loadPending();
+    this.load();
   }
 }
