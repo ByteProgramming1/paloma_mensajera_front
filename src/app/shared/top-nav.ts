@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/auth.service';
+import { UserRole } from '../core/api.models';
 
 interface NavLink { path: string; label: string; }
 
@@ -10,7 +11,7 @@ interface NavLink { path: string; label: string; }
   template: `
     <header class="sticky top-0 z-10 border-b border-border-soft bg-bg-surface-elevated/95 backdrop-blur">
       <div class="flex min-h-[64px] items-center justify-between gap-4 px-4 sm:px-6">
-        <a routerLink="/" class="flex shrink-0 items-center gap-2 text-[13px] font-semibold text-text-primary">
+        <a [routerLink]="homePath()" class="flex shrink-0 items-center gap-2 text-[13px] font-semibold text-text-primary">
           <img src="assets/logos/paloma-mensajera.png" alt="" class="h-8 w-8 object-contain sm:h-9 sm:w-9" />
           <span class="hidden sm:inline">Paloma Mensajera</span>
         </a>
@@ -90,6 +91,11 @@ export class TopNav {
     const lastOrderId = this.lastOrderId();
     if (lastOrderId) links.push({ path: `/pedidos/${lastOrderId}`, label: 'Mi pedido' });
     return links;
+  }
+
+  protected homePath(): string {
+    const role = this.auth.session()?.roleSlug as UserRole | undefined;
+    return role === 'admin' ? '/admin/pedidos' : role === 'seller' ? '/vendedor/mensajes' : '/catalogo';
   }
 
   private lastOrderId(): string | null {

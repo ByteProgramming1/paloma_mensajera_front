@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FooterComponent } from '../footer/footer';
 import { AuthService } from '../core/auth.service';
@@ -12,7 +13,7 @@ const HOME_BY_ROLE: Record<UserRole, string> = {
 
 @Component({
   selector: 'app-landing-page',
-  imports: [FooterComponent],
+  imports: [FooterComponent, FormsModule],
   templateUrl: './landing-page.html',
   styleUrl: './landing-page.css',
 })

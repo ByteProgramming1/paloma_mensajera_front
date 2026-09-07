@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { StaffRole, StaffUser } from '../core/api.models';
+import { StaffRole, StaffUser, UserRole } from '../core/api.models';
 import { AdminService } from '../core/admin.service';
 
 @Component({
@@ -48,13 +48,19 @@ import { AdminService } from '../core/admin.service';
           <li class="card-surface flex flex-wrap items-center justify-between gap-4 p-4">
             <div>
               <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
-              <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · vence ' + (user.expiresAt | date:'short') : '' }}</p>
+              <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · cuenta vence ' + (user.expiresAt | date:'short') : '' }}{{ user.roleExpiresAt ? ' · rol vence ' + (user.roleExpiresAt | date:'short') : '' }}</p>
             </div>
             <div class="flex items-center gap-3">
-              <select class="field-input !h-9 max-w-[160px]" [ngModel]="user.role" (ngModelChange)="reassign(user, $event)">
+              <select class="field-input !h-9 max-w-[160px]" [ngModel]="pendingRole(user)?.role ?? user.role" (ngModelChange)="prepareReassign(user, $event)">
+                <option value="comprador">Comprador</option>
                 <option value="seller">Vendedor</option>
                 <option value="admin">Administrador</option>
               </select>
+              @if (pendingRole(user); as pending) {
+                <input class="field-input !h-9" type="datetime-local" [min]="minRoleDateTime" [(ngModel)]="pending.expiresAt" />
+                <button type="button" class="btn-primary" (click)="confirmReassign(user)">Confirmar</button>
+                <button type="button" class="btn-ghost" (click)="cancelReassign(user)">Cancelar</button>
+              }
               <button type="button" class="btn" [class]="user.isActive ? 'btn-secondary' : 'btn-primary'" (click)="toggle(user)">
                 {{ user.isActive ? 'Desactivar' : 'Activar' }}
               </button>
@@ -72,6 +78,8 @@ export class AdminUsersPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly tempMessage = signal('');
+  protected readonly pendingRoles = signal<Record<string, { role: UserRole; expiresAt: string }>>({});
+  protected readonly minRoleDateTime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
 
   protected temp: { name: string; email: string; roleSlug: StaffRole; expiresAt: string } = {
     name: '',
@@ -95,9 +103,35 @@ export class AdminUsersPage {
     }
   }
 
-  protected async reassign(user: StaffUser, newRole: StaffRole): Promise<void> {
-    await firstValueFrom(this.adminApi.reassignRole(user.id, newRole));
-    this.load();
+  protected pendingRole(user: StaffUser): { role: UserRole; expiresAt: string } | undefined {
+    return this.pendingRoles()[user.id];
+  }
+
+  protected prepareReassign(user: StaffUser, newRole: UserRole): void {
+    this.pendingRoles.update((pending) => ({
+      ...pending,
+      [user.id]: { role: newRole, expiresAt: '' },
+    }));
+  }
+
+  protected async confirmReassign(user: StaffUser): Promise<void> {
+    const pending = this.pendingRole(user);
+    if (!pending?.expiresAt) {
+      this.errorMessage.set('Selecciona hasta qué fecha estará vigente el nuevo rol.');
+      return;
+    }
+
+    try {
+      await firstValueFrom(this.adminApi.reassignRole(user.id, pending.role, new Date(pending.expiresAt).toISOString()));
+      this.pendingRoles.update(({ [user.id]: _removed, ...remaining }) => remaining);
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cambiar el rol.');
+    }
+  }
+
+  protected cancelReassign(user: StaffUser): void {
+    this.pendingRoles.update(({ [user.id]: _removed, ...remaining }) => remaining);
   }
 
   protected async toggle(user: StaffUser): Promise<void> {
