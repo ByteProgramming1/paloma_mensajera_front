@@ -79,6 +79,23 @@ const STATUS_LABELS: Record<string, string> = {
       <p class="text-text-secondary">Cargando métricas…</p>
     }
 
+    <section class="card-surface mt-8 p-6">
+      <h2 class="text-[16px] font-semibold text-text-primary">Lista de preparación</h2>
+      <p class="field-hint mb-4">Cuánto hay que alistar para el día de la entrega — solo cuenta pedidos con pago verificado y no cancelados.</p>
+      @if (prepList().length === 0) {
+        <p class="field-hint">Todavía no hay nada que preparar.</p>
+      } @else {
+        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          @for (row of prepList(); track row.name) {
+            <li class="flex items-center justify-between rounded-[var(--radius-sm)] bg-bg-base px-3 py-2 text-[14px] text-text-primary">
+              <span>{{ row.name }}</span>
+              <span class="mono-figure font-semibold text-brand-magenta">{{ row.quantity }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
     <section class="card-surface mt-8 flex flex-col gap-4 p-6">
       <div>
         <h2 class="text-[16px] font-semibold text-text-primary">Explorador completo de pedidos</h2>
@@ -227,6 +244,24 @@ export class AdminMetricsPage {
   protected readonly allOrders = signal<Order[]>([]);
   protected readonly ordersLoading = signal(true);
   protected readonly ordersError = signal('');
+
+  protected readonly prepList = computed(() => {
+    const counts = new Map<string, number>();
+    for (const order of this.allOrders()) {
+      if (order.status === 'CANCELLED' || order.payment?.verified !== true) continue;
+      for (const item of order.items) {
+        const productName = item.productName ?? item.productId;
+        counts.set(productName, (counts.get(productName) ?? 0) + item.quantity);
+        if (item.selectedAddOnOption) {
+          const optionName = item.selectedAddOnOption.name;
+          counts.set(optionName, (counts.get(optionName) ?? 0) + item.quantity);
+        }
+      }
+    }
+    return [...counts.entries()]
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => b.quantity - a.quantity);
+  });
 
   protected readonly search = signal('');
   protected readonly statusFilter = signal<OrderStatus | ''>('');
