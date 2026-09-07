@@ -20,12 +20,20 @@ import { RaffleChip, RaffleChipState } from '../shared/raffle-chip';
     } @else {
       <div class="flex flex-wrap gap-3">
         @for (number of numbers(); track number.id) {
-          <app-raffle-chip [number]="number.number" [state]="stateOf(number)" (pick)="select(number)" />
+          <app-raffle-chip [number]="number.number" [state]="stateOf(number)" (pick)="pick(number)" />
         }
       </div>
     }
 
-    @if (isSubmitting()) { <p class="mt-4 text-text-secondary">Confirmando tu número…</p> }
+    @if (pendingNumber(); as pending) {
+      <div class="mt-6 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-brand-magenta bg-bg-surface-elevated p-4">
+        <p class="text-[15px] text-text-primary">¿Confirmas el número <span class="mono-figure font-semibold text-brand-magenta">{{ pending.number }}</span>? No podrás cambiarlo después.</p>
+        <button type="button" class="btn-primary" [disabled]="isSubmitting()" (click)="confirmSelection(pending)">
+          {{ isSubmitting() ? 'Confirmando…' : 'Sí, confirmar' }}
+        </button>
+        <button type="button" class="btn-ghost" [disabled]="isSubmitting()" (click)="cancelSelection()">Elegir otro</button>
+      </div>
+    }
   `,
 })
 export class RafflePage {
@@ -38,7 +46,7 @@ export class RafflePage {
   protected readonly isLoading = signal(true);
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
-  protected readonly selectedId = signal<string | null>(null);
+  protected readonly pendingNumber = signal<RaffleNumber | null>(null);
 
   constructor() {
     this.load();
@@ -56,21 +64,30 @@ export class RafflePage {
   }
 
   protected stateOf(number: RaffleNumber): RaffleChipState {
-    if (number.id === this.selectedId()) return 'seleccionado';
+    if (number.id === this.pendingNumber()?.id) return 'seleccionado';
     return number.status === 'AVAILABLE' ? 'disponible' : 'tomado';
   }
 
-  protected async select(number: RaffleNumber): Promise<void> {
+  protected pick(number: RaffleNumber): void {
+    if (this.isSubmitting()) return;
+    this.errorMessage.set('');
+    this.pendingNumber.set(number);
+  }
+
+  protected cancelSelection(): void {
+    this.pendingNumber.set(null);
+  }
+
+  protected async confirmSelection(number: RaffleNumber): Promise<void> {
     const orderId = this.route.snapshot.paramMap.get('id');
     if (!orderId || this.isSubmitting()) return;
     this.errorMessage.set('');
     this.isSubmitting.set(true);
-    this.selectedId.set(number.id);
     try {
       await firstValueFrom(this.ordersApi.selectRaffleNumber(orderId, number.id));
       this.router.navigateByUrl(`/pedidos/${orderId}`);
     } catch (error) {
-      this.selectedId.set(null);
+      this.pendingNumber.set(null);
       this.errorMessage.set(error instanceof Error ? error.message : 'Ese número ya no está disponible, elige otro.');
       this.load();
     } finally {

@@ -243,8 +243,6 @@ export interface StaffUser {
   roleExpiresAt?: string | null;
 }
 
-export type NotificationMode = 'MANUAL' | 'AUTOMATIC';
-
 export interface SalesChannelMetric { count: number; totalAmount: number; }
 
 export interface MetricsSummary {

@@ -2,7 +2,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { BuyerType, MetricsSummary, NotificationMode, Order, OrderStatus, SalesChannel } from '../core/api.models';
+import { BuyerType, MetricsSummary, Order, OrderStatus, SalesChannel } from '../core/api.models';
 import { AdminService } from '../core/admin.service';
 import { OrdersService } from '../core/orders.service';
 import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
@@ -156,7 +156,7 @@ const STATUS_LABELS: Record<string, string> = {
       } @else {
         <p class="field-hint">{{ filteredOrders().length }} de {{ allOrders().length }} pedido(s)</p>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
-          <table class="w-full min-w-[1400px] border-collapse text-[13px]">
+          <table class="w-full min-w-[1520px] border-collapse text-[13px]">
             <thead>
               <tr class="bg-bg-base text-left text-text-secondary">
                 <th class="p-2">Código</th>
@@ -165,6 +165,7 @@ const STATUS_LABELS: Record<string, string> = {
                 <th class="p-2">Canal</th>
                 <th class="p-2">Comprador</th>
                 <th class="p-2">Correo</th>
+                <th class="p-2">Teléfono</th>
                 <th class="p-2">Tipo</th>
                 <th class="p-2">Carrera / área (comprador)</th>
                 <th class="p-2">Autorrecogida</th>
@@ -184,8 +185,9 @@ const STATUS_LABELS: Record<string, string> = {
                   <td class="p-2 whitespace-nowrap">{{ order.createdAt | date:'short' }}</td>
                   <td class="p-2"><app-order-status-badge [status]="order.status" /></td>
                   <td class="p-2">{{ order.salesChannel === 'ONLINE' ? 'En línea' : 'Presencial' }}</td>
-                  <td class="p-2">{{ order.isAnonymous ? 'Anónimo' : (order.buyerFullName ?? '—') }}</td>
-                  <td class="p-2">{{ order.isAnonymous ? '—' : (order.buyerEmail ?? '—') }}</td>
+                  <td class="p-2">{{ order.buyerFullName ?? '—' }}{{ order.isAnonymous ? ' (pidió anonimato con el vendedor)' : '' }}</td>
+                  <td class="p-2">{{ order.buyerEmail ?? '—' }}</td>
+                  <td class="p-2">{{ order.buyerPhone ?? '—' }}</td>
                   <td class="p-2">{{ order.buyerType ?? '—' }}</td>
                   <td class="p-2">{{ order.buyerCareerOrArea ?? '—' }}</td>
                   <td class="p-2">{{ order.selfPickup ? 'Sí' : 'No' }}</td>
@@ -207,18 +209,6 @@ const STATUS_LABELS: Record<string, string> = {
         </div>
       }
     </section>
-
-    <section class="card-surface mt-8 flex flex-col gap-4 p-6">
-      <div>
-        <h2 class="text-[16px] font-semibold text-text-primary">Modo de notificación de entrega</h2>
-        <p class="field-hint">En modo automático, si Microsoft Graph falla para un pedido puntual, el sistema degrada a manual solo para ese caso.</p>
-      </div>
-      <div class="flex gap-2">
-        <button type="button" class="btn" [class]="notificationMode() === 'MANUAL' ? 'btn-primary' : 'btn-secondary'" (click)="setNotificationMode('MANUAL')">Manual</button>
-        <button type="button" class="btn" [class]="notificationMode() === 'AUTOMATIC' ? 'btn-primary' : 'btn-secondary'" (click)="setNotificationMode('AUTOMATIC')">Automático (Teams / Graph)</button>
-      </div>
-      @if (notificationMessage()) { <p class="field-hint">{{ notificationMessage() }}</p> }
-    </section>
   `,
 })
 export class AdminMetricsPage {
@@ -226,8 +216,6 @@ export class AdminMetricsPage {
   private readonly ordersApi = inject(OrdersService);
   protected readonly metrics = signal<MetricsSummary | null>(null);
   protected readonly errorMessage = signal('');
-  protected readonly notificationMode = signal<NotificationMode>('MANUAL');
-  protected readonly notificationMessage = signal('');
   protected readonly STATUS_LABELS = STATUS_LABELS;
   protected readonly programs = ACADEMIC_PROGRAMS;
   protected readonly statusOptions: OrderStatus[] = [
@@ -275,7 +263,7 @@ export class AdminMetricsPage {
       if (to !== null && createdAt > to) return false;
       if (query) {
         const haystack = [
-          order.buyerFullName, order.buyerEmail, order.buyerCareerOrArea,
+          order.buyerFullName, order.buyerEmail, order.buyerPhone, order.buyerCareerOrArea,
           order.recipientFullName, order.recipientCareerOrArea, order.orderCode,
         ].filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(query)) return false;
@@ -337,16 +325,6 @@ export class AdminMetricsPage {
       this.ordersError.set(error instanceof Error ? error.message : 'No fue posible cargar los pedidos.');
     } finally {
       this.ordersLoading.set(false);
-    }
-  }
-
-  protected async setNotificationMode(mode: NotificationMode): Promise<void> {
-    try {
-      await firstValueFrom(this.adminApi.updateNotificationMode(mode));
-      this.notificationMode.set(mode);
-      this.notificationMessage.set('Modo de notificación actualizado.');
-    } catch (error) {
-      this.notificationMessage.set(error instanceof Error ? error.message : 'No fue posible actualizar la configuración.');
     }
   }
 }
