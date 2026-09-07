@@ -6,7 +6,81 @@
 	--color-paloma-magenta: #a40082;
 	--color-paloma-muted: #817781;
 	--font-sans: "Avenir Next", "Trebuchet MS", sans-serif;
+
+	/* Design system tokens (Figma "00 — Design System") */
+	--brand-magenta: #97027b;
+	--brand-magenta-dark: #6d0159;
+	--bg-base: #f8f5fc;
+	--bg-surface: #fffafd;
+	--bg-surface-elevated: #ffffff;
+	--text-primary: #2a1420;
+	--text-secondary: #413c3f;
+	--text-on-accent: #fdf7e7;
+	--border-default: #8e838a;
+	--border-soft: #e6dff2;
+	--status-pendiente: #c97a1f;
+	--status-pagado: #14234e;
+	--status-en-camino: #97027b;
+	--status-entregado: #0b9598;
+	--status-error: #b0264f;
+	--radius-sm: 8px;
+	--radius-md: 16px;
+	--radius-full: 999px;
+	--radius-paper: 4px;
+	--font-ui: "Karla", "Avenir Next", "Trebuchet MS", sans-serif;
+	--font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+}
+
+@theme {
+	--color-brand-magenta: var(--brand-magenta);
+	--color-brand-magenta-dark: var(--brand-magenta-dark);
+	--color-bg-base: var(--bg-base);
+	--color-bg-surface: var(--bg-surface);
+	--color-bg-surface-elevated: var(--bg-surface-elevated);
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+	--color-text-on-accent: var(--text-on-accent);
+	--color-border-default: var(--border-default);
+	--color-border-soft: var(--border-soft);
+	--color-status-pendiente: var(--status-pendiente);
+	--color-status-pagado: var(--status-pagado);
+	--color-status-en-camino: var(--status-en-camino);
+	--color-status-entregado: var(--status-entregado);
+	--color-status-error: var(--status-error);
+	--radius-sm: var(--radius-sm);
+	--radius-md: var(--radius-md);
+	--radius-full: var(--radius-full);
+	--radius-paper: var(--radius-paper);
+	--font-ui: var(--font-ui);
+	--font-mono: var(--font-mono);
 }
 
 html, body { min-height: 100%; margin: 0; }
-body { background: #fff8fc; }
+body { background: var(--bg-base); color: var(--text-primary); font-family: var(--font-ui); }
+.app-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-shell main { flex: 1; }
+
+/* Design-system primitives shared across app screens (see Figma "00 — Design System") */
+.btn, .btn-primary, .btn-secondary, .btn-ghost {
+	display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+	border-radius: var(--radius-sm); padding: 8px 24px; font-family: var(--font-ui);
+	font-weight: 600; font-size: 15px; line-height: 1.2; border: 0; cursor: pointer; transition: filter .15s ease, opacity .15s ease, background-color .15s ease;
+}
+.btn:disabled, .btn-primary:disabled, .btn-secondary:disabled, .btn-ghost:disabled { cursor: not-allowed; opacity: .35; }
+.btn, .btn-primary { background: var(--brand-magenta); color: var(--text-on-accent); }
+.btn:hover:not(:disabled), .btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-secondary { border: 1.5px solid var(--brand-magenta); background: var(--bg-surface-elevated); color: var(--brand-magenta); }
+.btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-magenta) 6%, transparent); }
+.btn-ghost { background: transparent; color: var(--brand-magenta); padding: 8px 12px; }
+.btn-ghost:hover:not(:disabled) { opacity: .8; }
+
+.field { @apply flex flex-col gap-1.5; }
+.field-label { @apply text-[13px] font-medium text-text-secondary; }
+.field-input { @apply h-11 w-full rounded-[var(--radius-sm)] border border-border-default bg-bg-surface-elevated px-4 text-[15px] text-text-primary outline-none transition placeholder:text-text-secondary/70 focus:border-2 focus:border-text-secondary; }
+.field-input.has-error { @apply border-status-error; }
+.field-error { @apply text-[12px] font-medium text-status-error; }
+.field-hint { @apply text-[12px] text-text-secondary; }
+
+.card-surface { @apply rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated shadow-[0_2px_10px_rgba(41,20,33,0.06)]; }
+
+.mono-figure { font-family: var(--font-mono); }

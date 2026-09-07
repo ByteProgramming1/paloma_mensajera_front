@@ -1,23 +1,26 @@
 import { TestBed } from '@angular/core/testing';
-import { App } from './app';
+import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { LandingPage } from './landing/landing-page';
+import { routes } from './app.routes';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [App],
+      providers: [provideRouter(routes)],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+  it('should create the app', async () => {
+    const harness = await RouterTestingHarness.create();
+    const landing = await harness.navigateByUrl('/', LandingPage);
+    expect(landing).toBeTruthy();
   });
 
-  it('should render the institutional login', async () => {
-    const fixture = TestBed.createComponent(App);
-    await fixture.whenStable();
-    const compiled = fixture.nativeElement as HTMLElement;
+  it('should render the institutional login on the landing route', async () => {
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/');
+    const compiled = harness.routeNativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Haz llegar un detalle');
     expect(compiled.querySelector('button')?.textContent).toContain('Ingresar');
   });
