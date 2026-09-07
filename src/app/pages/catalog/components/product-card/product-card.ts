@@ -1,7 +1,9 @@
 import { Component, input, output } from '@angular/core';
 import { Product } from '../../../../core/api.models';
+import { RouterLink } from '@angular/router';
 
 @Component({
+  imports: [RouterLink],
   selector: 'app-product-card',
   templateUrl: './product-card.html',
   styleUrl: './product-card.css'
