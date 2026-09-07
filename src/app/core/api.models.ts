@@ -74,3 +74,24 @@ export interface ApiError {
   message?: string | string[];
   error?: string;
 }
+
+export type OrderStatus = 'pendiente' | 'pagado' | 'en_camino' | 'entregado';
+
+export interface Order {
+  id: string;
+  description: string;
+  price: number;
+  status: OrderStatus;
+}
+
+interface StatusVisual {
+  label: string;
+  badgeClass: string;
+}
+
+export const ORDER_STATUS_CONFIG: Record<OrderStatus, StatusVisual> = {
+  pendiente: { label: 'Pendiente de verificación', badgeClass: 'item-badge--pendiente' },
+  pagado: { label: 'Pagado', badgeClass: 'item-badge--pagado' },
+  en_camino: { label: 'En camino', badgeClass: 'item-badge--en-camino' },
+  entregado: { label: 'Entregado', badgeClass: 'item-badge--entregado' },
+};

@@ -1,0 +1,14 @@
+<div class="order-item">
+  <div class="item-info">
+    <span class="item-id">{{ order.id }}</span>
+    <span class="item-description">{{ order.description }}</span>
+  </div>
+
+  <div class="item-meta">
+    <span class="item-price">{{ formattedPrice }}</span>
+
+    <span class="item-badge" [ngClass]="statusConfig.badgeClass">
+      {{ statusConfig.label }}
+    </span>
+  </div>
+</div>

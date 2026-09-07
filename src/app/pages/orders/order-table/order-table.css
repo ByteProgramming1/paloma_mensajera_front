@@ -1,0 +1,36 @@
+:host {
+  --table-bg: #fdf6fb;
+  --table-shadow: rgba(129, 119, 129, 0.1);
+  --table-muted: #817781;
+}
+
+.order-table {
+    display: flex;
+    border-radius: 16px;
+    gap: .5rem;
+    flex-direction: column
+}
+
+.table-empty {
+    padding: 48px 24px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--table-muted);
+}
+
+@media (max-width: 768px) {
+    .order-table {
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .order-table {
+        border-radius: 12px;
+    }
+
+    .table-empty {
+        padding: 36px 20px;
+        font-size: 13px;
+    }
+}
