@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build && node scripts/inject-runtime-config.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:paloma-mensajera": "node dist/paloma-mensajera/server/server.mjs"
