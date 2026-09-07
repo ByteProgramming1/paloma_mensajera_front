@@ -24,10 +24,6 @@ export class OrdersService {
     return this.api.patch<Order>(`/orders/${id}/verify-payment`, { verified, verificationNotes });
   }
 
-  assignDelivery(id: string, deliveryPersonId: string) {
-    return this.api.patch<Order>(`/orders/${id}/assign-delivery`, { deliveryPersonId });
-  }
-
   updateDeliveryStatus(id: string, status: DeliveryStatus, details?: { receivedBy?: string; teamsConfirmationLog?: string; notes?: string }) {
     return this.api.patch<Order>(`/orders/${id}/delivery-status`, { status, ...details });
   }

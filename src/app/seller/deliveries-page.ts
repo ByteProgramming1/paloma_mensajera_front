@@ -13,12 +13,12 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
   imports: [FormsModule, ConfirmAction, OrderStatusBadge],
   template: `
     <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Entregas</h1>
-    <p class="mb-6 max-w-[620px] text-[15px] text-text-secondary">Busca por el nombre de quien llega a recoger — si el comprador recoge su propio regalo, verás el mismo nombre y su comentario.</p>
+    <p class="mb-6 max-w-[620px] text-[15px] text-text-secondary">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado. Busca por el nombre de quien llega a recoger si necesitas encontrar una en particular.</p>
 
     <div class="mb-6 flex flex-wrap gap-2">
       <input class="field-input max-w-[320px]" [(ngModel)]="search" (keyup.enter)="searchByName()" placeholder="Buscar destinatario por nombre…" />
       <button type="button" class="btn-secondary" (click)="searchByName()">Buscar</button>
-      <button type="button" class="btn-ghost" (click)="loadMine()">Ver mis entregas asignadas</button>
+      <button type="button" class="btn-ghost" (click)="loadPending()">Ver todas las entregas pendientes</button>
     </div>
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
@@ -102,10 +102,10 @@ export class DeliveriesPage {
   protected readonly receivedByDrafts: Record<string, string> = {};
 
   constructor() {
-    this.loadMine();
+    this.loadPending();
   }
 
-  protected async loadMine(): Promise<void> {
+  protected async loadPending(): Promise<void> {
     this.isLoading.set(true);
     this.errorMessage.set('');
     try {
@@ -118,7 +118,7 @@ export class DeliveriesPage {
   }
 
   protected async searchByName(): Promise<void> {
-    if (!this.search.trim()) return this.loadMine();
+    if (!this.search.trim()) return this.loadPending();
     this.isLoading.set(true);
     this.errorMessage.set('');
     try {
@@ -154,6 +154,6 @@ export class DeliveriesPage {
 
   private refresh(): void {
     if (this.search.trim()) this.searchByName();
-    else this.loadMine();
+    else this.loadPending();
   }
 }
