@@ -1,0 +1,125 @@
+<header class="site-header">
+  <a class="brand-lockup" href="#inicio" aria-label="Paloma Mensajera, inicio">
+    <img class="brand-logo" src="assets/logos/paloma-mensajera.png" alt="" />
+    <span><strong>Paloma Mensajera</strong><small>Detalles que llegan</small></span>
+  </a>
+  <nav aria-label="Navegación principal">
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="#beneficios">Beneficios</a>
+    <a class="nav-cta" href="#acceso">Ingresar</a>
+  </nav>
+</header>
+
+<main id="inicio">
+  <section class="hero-section" aria-labelledby="hero-title">
+    <div class="hero-copy">
+      <p class="eyebrow">Un gesto que cruza el campus</p>
+      <h1 id="hero-title">Haz llegar un detalle que diga <em>mucho.</em></h1>
+      <p class="hero-description">Regalos, cartas y sorpresas entregados directamente en la universidad. Comparte una emoción, incluso cuando no puedes decirla en persona.</p>
+      <div class="hero-actions">
+        <a class="primary-action" href="#acceso">Quiero enviar un detalle <span aria-hidden="true">→</span></a>
+        <a class="text-action" href="#como-funciona">Conoce la experiencia <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="hero-note"><span class="note-dot" aria-hidden="true"></span> Entregas cuidadas y 100% confidenciales</div>
+    </div>
+    <div class="hero-art" aria-label="Paloma Mensajera, detalles que llegan">
+      <div class="art-glow"></div>
+      <img class="hero-bird" src="assets/logos/paloma-mensajera.png" alt="Paloma Mensajera" />
+      <div class="floating-note floating-note--top">Un detalle para ti</div>
+      <div class="floating-note floating-note--bottom">Hecho con cariño <span aria-hidden="true">♡</span></div>
+    </div>
+  </section>
+
+  <section class="trust-strip" aria-label="Características del servicio">
+    <div><strong>01</strong><span>Elige un detalle<br />con intención</span></div>
+    <div><strong>02</strong><span>Personaliza tu<br />mensaje</span></div>
+    <div><strong>03</strong><span>Nosotros lo llevamos<br />por ti</span></div>
+  </section>
+
+  <section class="feature-section" id="beneficios" aria-labelledby="benefits-title">
+    <div class="section-heading">
+      <p class="eyebrow">Pequeños gestos, grandes momentos</p>
+      <h2 id="benefits-title">Una forma más bonita<br />de estar presente.</h2>
+    </div>
+    <div class="feature-grid">
+      <article class="feature-item">
+        <span class="feature-number">01</span>
+        <h3>Detalles para cada ocasión</h3>
+        <p>Combos, cartas, dulces y rosas pensados para celebrar, acompañar o simplemente alegrar el día.</p>
+      </article>
+      <article class="feature-item feature-item--highlight">
+        <span class="feature-number">02</span>
+        <h3>Tu mensaje, tu manera</h3>
+        <p>Envía tu dedicatoria con tu nombre o de forma anónima. Tú decides cómo quieres aparecer.</p>
+      </article>
+      <article class="feature-item">
+        <span class="feature-number">03</span>
+        <h3>Entregas que sí llegan</h3>
+        <p>Coordinamos cada entrega dentro de la universidad para que tu detalle llegue en el momento correcto.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="process-section" id="como-funciona" aria-labelledby="process-title">
+    <div class="process-visual">
+      <img src="assets/logos/escuelaing.png" alt="Escuela Colombiana de Ingeniería" />
+      <span>Dentro del campus,<br /><strong>más cerca de quien importa.</strong></span>
+    </div>
+    <div class="process-copy">
+      <p class="eyebrow">Así de sencillo</p>
+      <h2 id="process-title">Tu detalle en<br /><em>tres pasos.</em></h2>
+      <ol class="process-list">
+        <li><strong>Escoge</strong><span>Encuentra el detalle perfecto en nuestro catálogo.</span></li>
+        <li><strong>Dedica</strong><span>Escribe un mensaje que haga sonreír.</span></li>
+        <li><strong>Envía</strong><span>Nos encargamos de llevarlo hasta su destinatario.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="access-section" id="acceso" aria-labelledby="access-title">
+    <div class="access-intro">
+      <p class="eyebrow">Listos para recibir tu pedido</p>
+      <h2 id="access-title">Entra con tu correo<br /><em>institucional.</em></h2>
+      <p>Solo necesitas tu cuenta de la universidad para comenzar a enviar detalles.</p>
+    </div>
+    <div class="login-card">
+      <img class="access-logo" src="assets/logos/paloma-mensajera.png" alt="" aria-hidden="true" />
+      @if (authMode() === 'verify') {
+        <h3>Ingresa tu código</h3>
+        <p class="login-caption">Revisa tu correo institucional y escribe el código de 6 dígitos.</p>
+        <label class="field-label" for="verification-code">Código de verificación</label>
+        <input id="verification-code" class="auth-input auth-input--code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [value]="code()" (input)="updateField('code', $event)" placeholder="000000" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Verificando...' : 'Verificar código' }}
+        </button>
+        <button type="button" class="back-action" (click)="setAuthMode('register')">Volver y cambiar mis datos</button>
+      } @else {
+        <h3>{{ authMode() === 'login' ? 'Ingresa a tu cuenta' : 'Crea tu cuenta' }}</h3>
+        <p class="login-caption">Usa tu correo institucional para continuar.</p>
+        @if (authMode() === 'register') {
+          <label class="field-label" for="account-name">Nombre completo</label>
+          <input id="account-name" class="auth-input" autocomplete="name" [value]="name()" (input)="updateField('name', $event)" placeholder="Tu nombre completo" />
+        }
+        <label class="field-label" for="account-email">Correo institucional</label>
+        <input id="account-email" class="auth-input" type="email" autocomplete="email" [value]="email()" (input)="updateField('email', $event)" placeholder="nombre@escuelaing.edu.co" />
+        <label class="field-label" for="account-password">Contraseña</label>
+        <input id="account-password" class="auth-input" type="password" autocomplete="current-password" [value]="password()" (input)="updateField('password', $event)" placeholder="Tu contraseña" />
+        <button type="button" class="auth-button" [disabled]="isLoading()" (click)="submitAuth()">
+          {{ isLoading() ? 'Conectando...' : authMode() === 'login' ? 'Ingresar' : 'Solicitar código' }}
+        </button>
+        <button type="button" class="mode-action" (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')">
+          {{ authMode() === 'login' ? '¿Aún no tienes cuenta? Regístrate' : 'Ya tengo una cuenta, ingresar' }}
+        </button>
+        @if (authMode() === 'register') {
+          <button type="button" class="back-action" (click)="setAuthMode('verify')">Ya tengo un código de verificación</button>
+        }
+      }
+      <div class="notice" role="note"><span class="info-icon" aria-hidden="true">i</span><span>Usa un correo institucional autorizado. El código es temporal y no debes compartirlo.</span></div>
+      <p class="privacy">Tus datos y dedicatorias se tratan de forma confidencial.</p>
+      @if (errorMessage()) { <p class="feedback feedback--error" role="alert">{{ errorMessage() }}</p> }
+      @if (successMessage()) { <p class="feedback feedback--success" role="status">{{ successMessage() }}</p> }
+    </div>
+  </section>
+</main>
+
+<app-footer />
