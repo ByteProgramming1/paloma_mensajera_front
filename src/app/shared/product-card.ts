@@ -1,10 +1,11 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Product } from '../core/api.models';
 
 @Component({
   selector: 'app-product-card',
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe, FormsModule],
   template: `
     <article class="card-surface flex w-full max-w-[320px] flex-col gap-4 p-5">
       <div class="flex h-40 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
@@ -28,11 +29,26 @@ import { Product } from '../core/api.models';
       } @else if (product().stock <= 5) {
         <p class="field-hint">Quedan {{ product().stock }} unidades</p>
       }
+      @if (quantity() > 0 && addOnGroup(); as group) {
+        <label class="field">
+          <span class="field-label">{{ group.name }}</span>
+          <select class="field-input" [ngModel]="selectedAddOnOptionId() ?? ''" (ngModelChange)="addOnOptionChange.emit($event)">
+            <option value="" disabled>Selecciona una opción</option>
+            @for (option of group.options; track option.id) { <option [value]="option.id">{{ option.name }}</option> }
+          </select>
+        </label>
+      }
     </article>
   `,
 })
 export class ProductCard {
   readonly product = input.required<Product>();
   readonly quantity = input(0);
+  readonly selectedAddOnOptionId = input<string | undefined>(undefined);
   readonly quantityChange = output<number>();
+  readonly addOnOptionChange = output<string>();
+
+  protected addOnGroup() {
+    return this.product().addOnGroups?.[0] ?? null;
+  }
 }

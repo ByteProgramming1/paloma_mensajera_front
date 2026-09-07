@@ -1,0 +1,17 @@
+export const ACADEMIC_PROGRAMS: readonly string[] = [
+  'Ingeniería Civil',
+  'Ingeniería Eléctrica',
+  'Ingeniería de Sistemas',
+  'Ingeniería Industrial',
+  'Ingeniería Electrónica',
+  'Economía',
+  'Administración de Empresas',
+  'Matemáticas',
+  'Ingeniería Mecánica',
+  'Ingeniería Biomédica',
+  'Ingeniería Ambiental',
+  'Ingeniería Estadística',
+  'Ingeniería en Biotecnología',
+  'Ingeniería de Inteligencia Artificial',
+  'Ingeniería de Ciberseguridad',
+];

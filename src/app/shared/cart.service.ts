@@ -1,17 +1,19 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CartItem, Product } from '../core/api.models';
 
+interface CartLine { quantity: number; selectedAddOnOptionId?: string; }
+
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  private readonly quantities = signal<Map<string, number>>(new Map());
+  private readonly cartLines = signal<Map<string, CartLine>>(new Map());
   private readonly catalog = signal<Product[]>([]);
 
   readonly lines = computed(() => {
     const products = new Map(this.catalog().map((product) => [product.id, product]));
-    return [...this.quantities().entries()]
-      .filter(([, quantity]) => quantity > 0)
-      .map(([productId, quantity]) => ({ product: products.get(productId), quantity }))
-      .filter((line): line is { product: Product; quantity: number } => !!line.product);
+    return [...this.cartLines().entries()]
+      .filter(([, line]) => line.quantity > 0)
+      .map(([productId, line]) => ({ product: products.get(productId), quantity: line.quantity, selectedAddOnOptionId: line.selectedAddOnOptionId }))
+      .filter((line): line is { product: Product; quantity: number; selectedAddOnOptionId: string | undefined } => !!line.product);
   });
 
   readonly total = computed(() => this.lines().reduce((sum, line) => sum + line.product.price * line.quantity, 0));
@@ -22,21 +24,37 @@ export class CartService {
   }
 
   quantityOf(productId: string): number {
-    return this.quantities().get(productId) ?? 0;
+    return this.cartLines().get(productId)?.quantity ?? 0;
+  }
+
+  selectedAddOnOptionOf(productId: string): string | undefined {
+    return this.cartLines().get(productId)?.selectedAddOnOptionId;
   }
 
   setQuantity(productId: string, quantity: number): void {
-    const next = new Map(this.quantities());
+    const next = new Map(this.cartLines());
     if (quantity <= 0) next.delete(productId);
-    else next.set(productId, quantity);
-    this.quantities.set(next);
+    else next.set(productId, { ...next.get(productId), quantity });
+    this.cartLines.set(next);
+  }
+
+  setAddOnOption(productId: string, selectedAddOnOptionId: string): void {
+    const next = new Map(this.cartLines());
+    const current = next.get(productId);
+    if (!current) return;
+    next.set(productId, { ...current, selectedAddOnOptionId });
+    this.cartLines.set(next);
   }
 
   toCartItems(): CartItem[] {
-    return this.lines().map((line) => ({ productId: line.product.id, quantity: line.quantity }));
+    return this.lines().map((line) => ({
+      productId: line.product.id,
+      quantity: line.quantity,
+      ...(line.selectedAddOnOptionId ? { selectedAddOnOptionId: line.selectedAddOnOptionId } : {}),
+    }));
   }
 
   clear(): void {
-    this.quantities.set(new Map());
+    this.cartLines.set(new Map());
   }
 }

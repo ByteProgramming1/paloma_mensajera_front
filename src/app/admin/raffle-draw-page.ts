@@ -1,9 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { RaffleDrawHistoryEntry, RaffleDrawResult, RaffleNumber } from '../core/api.models';
+import { Order, RaffleDrawHistoryEntry, RaffleDrawResult, RaffleNumber } from '../core/api.models';
 import { RaffleService } from '../core/raffle.service';
+import { OrdersService } from '../core/orders.service';
 
 @Component({
   selector: 'app-admin-raffle-draw-page',
@@ -52,6 +53,44 @@ import { RaffleService } from '../core/raffle.service';
       </section>
     }
 
+    <section class="card-surface mb-8 p-6">
+      <h2 class="text-[16px] font-semibold text-text-primary">Números confirmados (pago verificado)</h2>
+      <p class="field-hint mb-4">Se va llenando a medida que se verifican pagos — solo entran aquí compradores con pago verificado y pedido no cancelado.</p>
+      @if (verifiedParticipants().length === 0) {
+        <p class="field-hint">Todavía no hay ningún número confirmado.</p>
+      } @else {
+        <div class="mb-5 flex flex-wrap gap-3">
+          @for (entry of verifiedParticipants(); track entry.order.id) {
+            <div class="mono-figure flex size-14 items-center justify-center rounded-[var(--radius-sm)] bg-brand-magenta text-[16px] text-text-on-accent" [title]="entry.order.buyerFullName ?? 'Anónimo'">
+              {{ entry.order.raffleNumber }}
+            </div>
+          }
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[520px] border-collapse text-[13px]">
+            <thead>
+              <tr class="bg-bg-base text-left text-text-secondary">
+                <th class="p-2">N° rifa</th>
+                <th class="p-2">Comprador</th>
+                <th class="p-2">Destinatario</th>
+                <th class="p-2">Anónimo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (entry of verifiedParticipants(); track entry.order.id) {
+                <tr class="border-t border-border-soft text-text-primary">
+                  <td class="mono-figure p-2">{{ entry.order.raffleNumber }}</td>
+                  <td class="p-2">{{ entry.order.buyerFullName ?? '—' }}</td>
+                  <td class="p-2">{{ entry.order.recipientFullName }}</td>
+                  <td class="p-2">{{ entry.order.isAnonymous ? 'Sí' : 'No' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
     <section>
       <h2 class="mb-3 text-[16px] font-semibold text-text-primary">Historial de rondas</h2>
       @if (history().length === 0) {
@@ -72,9 +111,18 @@ import { RaffleService } from '../core/raffle.service';
 })
 export class AdminRaffleDrawPage {
   private readonly raffleApi = inject(RaffleService);
+  private readonly ordersApi = inject(OrdersService);
 
   protected readonly eligible = signal<RaffleNumber[]>([]);
+  protected readonly orders = signal<Order[]>([]);
   protected readonly history = signal<RaffleDrawHistoryEntry[]>([]);
+
+  protected readonly verifiedParticipants = computed(() =>
+    this.orders()
+      .filter((order) => order.payment?.verified === true && order.status !== 'CANCELLED' && order.raffleNumber !== null)
+      .map((order) => ({ order }))
+      .sort((a, b) => (a.order.raffleNumber ?? 0) - (b.order.raffleNumber ?? 0)),
+  );
   protected readonly lastResult = signal<RaffleDrawResult | null>(null);
   protected readonly isSpinning = signal(false);
   protected readonly errorMessage = signal('');
@@ -112,12 +160,14 @@ export class AdminRaffleDrawPage {
 
   private async refresh(): Promise<void> {
     try {
-      const [eligible, history] = await Promise.all([
+      const [eligible, history, orders] = await Promise.all([
         firstValueFrom(this.raffleApi.eligibleForDraw()),
         firstValueFrom(this.raffleApi.history()),
+        firstValueFrom(this.ordersApi.list()),
       ]);
       this.eligible.set(eligible);
       this.history.set(history);
+      this.orders.set(orders);
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cargar el sorteo.');
     }

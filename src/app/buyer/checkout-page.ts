@@ -7,6 +7,7 @@ import { AuthService } from '../core/auth.service';
 import { BuyerType, CreateOrderRequest, SalesChannel } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
 import { CartService } from '../shared/cart.service';
+import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 
 @Component({
   selector: 'app-checkout-page',
@@ -47,7 +48,16 @@ import { CartService } from '../shared/cart.service';
               </label>
               <label class="field sm:col-span-2">
                 <span class="field-label">{{ form.buyerType === 'ESTUDIANTE' ? 'Carrera o programa' : 'Área de trabajo' }}</span>
-                <input class="field-input" name="buyerCareerOrArea" required [(ngModel)]="form.buyerCareerOrArea" />
+                @if (form.buyerType === 'ESTUDIANTE') {
+                  <select class="field-input" name="buyerCareerOrArea" required [(ngModel)]="form.buyerCareerOrArea">
+                    <option value="" disabled>Selecciona tu carrera</option>
+                    @for (program of programs; track program) {
+                      <option [value]="program">{{ program }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input class="field-input" name="buyerCareerOrArea" required [(ngModel)]="form.buyerCareerOrArea" placeholder="Ej. Bienestar Universitario" />
+                }
               </label>
             </div>
           </section>
@@ -67,7 +77,12 @@ import { CartService } from '../shared/cart.service';
                 </label>
                 <label class="field">
                   <span class="field-label">Carrera / área del destinatario</span>
-                  <input class="field-input" name="recipientCareerOrArea" required [(ngModel)]="form.recipientCareerOrArea" />
+                  <select class="field-input" name="recipientCareerOrArea" required [(ngModel)]="form.recipientCareerOrArea">
+                    <option value="" disabled>Selecciona la carrera</option>
+                    @for (program of programs; track program) {
+                      <option [value]="program">{{ program }}</option>
+                    }
+                  </select>
                 </label>
                 <label class="field">
                   <span class="field-label">Usuario de Teams del destinatario</span>
@@ -137,6 +152,7 @@ export class CheckoutPage implements OnInit {
 
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly programs = ACADEMIC_PROGRAMS;
 
   protected form: {
     buyerFullName: string;

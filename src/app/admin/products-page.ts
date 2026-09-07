@@ -78,6 +78,39 @@ import { ProductsService } from '../core/products.service';
             <button type="button" class="btn" [class]="product.isActive ? 'btn-secondary' : 'btn-primary'" (click)="update(product, { isActive: !product.isActive })">
               {{ product.isActive ? 'Desactivar' : 'Activar' }}
             </button>
+
+            @if (product.type === 'COMBO') {
+              <div class="mt-2 flex flex-col gap-3 border-t border-border-soft pt-3">
+                <p class="field-label">Acompañantes (ej. tipos de carta)</p>
+                @for (group of product.addOnGroups ?? []; track group.id) {
+                  <div class="rounded-[var(--radius-sm)] bg-bg-base p-3">
+                    <p class="mb-2 text-[13px] font-semibold text-text-primary">{{ group.name }}</p>
+                    <ul class="mb-2 flex flex-wrap gap-2">
+                      @for (option of group.options; track option.id) {
+                        <li class="flex items-center gap-2 rounded-[var(--radius-sm)] bg-bg-surface-elevated px-2 py-1 text-[12px] text-text-secondary">
+                          @if (option.imageUrl) {
+                            <img [src]="option.imageUrl" [alt]="option.name" class="size-6 rounded-full object-cover" />
+                          }
+                          {{ option.name }}
+                          <label class="cursor-pointer text-brand-magenta underline">
+                            Foto
+                            <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" (change)="uploadOptionImage(option.id, $event)" />
+                          </label>
+                        </li>
+                      }
+                    </ul>
+                    <div class="flex gap-2">
+                      <input class="field-input !h-8 max-w-[200px] text-[13px]" [(ngModel)]="newOptionDrafts[group.id]" [name]="'newOption-' + group.id" placeholder="Ej. Carta rosa" />
+                      <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" (click)="addOption(group.id)">Agregar opción</button>
+                    </div>
+                  </div>
+                }
+                <div class="flex gap-2">
+                  <input class="field-input !h-8 max-w-[220px] text-[13px]" [(ngModel)]="newGroupDrafts[product.id]" [name]="'newGroup-' + product.id" placeholder="Ej. Elige tu carta" />
+                  <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" (click)="addGroup(product)">+ Nuevo grupo</button>
+                </div>
+              </div>
+            }
           </li>
         }
       </ul>
@@ -91,6 +124,8 @@ export class AdminProductsPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly uploadingId = signal<string | null>(null);
+  protected readonly newGroupDrafts: Record<string, string> = {};
+  protected readonly newOptionDrafts: Record<string, string> = {};
 
   protected draft: { name: string; type: ProductType; price: number; stock: number } = {
     name: '',
@@ -142,6 +177,44 @@ export class AdminProductsPage {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible subir la imagen.');
     } finally {
       this.uploadingId.set(null);
+      input.value = '';
+    }
+  }
+
+  protected async addGroup(product: Product): Promise<void> {
+    const name = this.newGroupDrafts[product.id]?.trim();
+    if (!name) return;
+    try {
+      await firstValueFrom(this.productsApi.createAddOnGroup(product.id, name));
+      this.newGroupDrafts[product.id] = '';
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear el grupo de acompañantes.');
+    }
+  }
+
+  protected async addOption(groupId: string): Promise<void> {
+    const name = this.newOptionDrafts[groupId]?.trim();
+    if (!name) return;
+    try {
+      await firstValueFrom(this.productsApi.createAddOnOption(groupId, name));
+      this.newOptionDrafts[groupId] = '';
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear la opción.');
+    }
+  }
+
+  protected async uploadOptionImage(optionId: string, event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      await firstValueFrom(this.productsApi.uploadAddOnOptionImage(optionId, file));
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible subir la imagen de la opción.');
+    } finally {
       input.value = '';
     }
   }

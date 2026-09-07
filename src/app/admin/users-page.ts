@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { StaffRole, StaffUser, UserRole } from '../core/api.models';
@@ -39,12 +39,20 @@ import { AdminService } from '../core/admin.service';
       @if (tempMessage()) { <p class="field-hint mt-3">{{ tempMessage() }}</p> }
     </section>
 
+    <label class="field mb-4 max-w-[320px]">
+      <span class="field-label">Buscar por nombre o correo</span>
+      <input class="field-input" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" name="nameFilter" placeholder="Ej. Astrih González" />
+    </label>
+
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
     } @else {
+      @if (filteredUsers().length === 0) {
+        <p class="field-hint">No se encontró nadie con ese nombre o correo.</p>
+      }
       <ul class="flex flex-col gap-3">
-        @for (user of users(); track user.id) {
+        @for (user of filteredUsers(); track user.id) {
           <li class="card-surface flex flex-wrap items-center justify-between gap-4 p-4">
             <div>
               <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
@@ -78,6 +86,15 @@ export class AdminUsersPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly tempMessage = signal('');
+  protected readonly nameFilter = signal('');
+
+  protected readonly filteredUsers = computed(() => {
+    const query = this.nameFilter().trim().toLowerCase();
+    if (!query) return this.users();
+    return this.users().filter(
+      (user) => user.fullName.toLowerCase().includes(query) || user.email.toLowerCase().includes(query),
+    );
+  });
   protected readonly pendingRoles = signal<Record<string, { role: UserRole; expiresAt: string }>>({});
   protected readonly minRoleDateTime = new Date(Date.now() + 60_000).toISOString().slice(0, 16);
 

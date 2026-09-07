@@ -78,7 +78,6 @@ export class TopNav {
         { path: '/admin/usuarios', label: 'Usuarios' },
         { path: '/admin/productos', label: 'Catálogo' },
         { path: '/admin/metricas', label: 'Métricas' },
-        { path: '/admin/configuracion', label: 'Configuración' },
       ];
     }
     if (this.auth.hasRole('seller')) {
