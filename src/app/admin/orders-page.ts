@@ -53,8 +53,6 @@ type Tab = 'pagos' | 'todos';
                 <p><span class="field-label">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
                 <p><span class="field-label">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
                 <p><span class="field-label">N° rifa</span> {{ order.raffleNumber ?? '—' }}</p>
-                <p><span class="field-label">Notificado por Teams</span> {{ order.teamsNotificationSent ? 'Sí' : 'No' }}</p>
-                <p><span class="field-label">Vendedor asistió</span> {{ order.assistedBySellerId ?? '—' }}</p>
                 <p>
                   <span class="field-label">Dedicatoria</span>
                   {{ order.messageReview?.humanReviewStatus ?? '—' }}

@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { MetricsSummary, NotificationMode, RegisterResponse, StaffRole, StaffUser, UserRole } from './api.models';
+import { MetricsSummary, RegisterResponse, StaffRole, StaffUser, UserRole } from './api.models';
 
 interface RawStaffUser {
   id: string;
@@ -44,9 +44,5 @@ export class AdminService {
 
   createTemporaryUser(payload: { email: string; name: string; roleSlug: StaffRole; expiresAt: string; password?: string }) {
     return this.api.post<RegisterResponse>('/auth/temporary-user', payload);
-  }
-
-  updateNotificationMode(notificationMode: NotificationMode) {
-    return this.api.patch<{ notificationMode: NotificationMode }>('/settings/notification-mode', { notificationMode });
   }
 }
