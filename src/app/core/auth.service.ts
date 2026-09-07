@@ -26,6 +26,14 @@ export class AuthService {
     return this.setSession(await firstValueFrom(this.api.post<LoginResponse>('/auth/verify-email', { email, code })));
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return firstValueFrom(this.api.post<{ message: string }>('/auth/forgot-password', { email }));
+  }
+
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    return firstValueFrom(this.api.post<{ message: string }>('/auth/reset-password', { token, password }));
+  }
+
   logout(): void {
     if (isPlatformBrowser(this.platformId)) sessionStorage.removeItem(SESSION_KEY);
     this.session.set(null);

@@ -1,6 +1,6 @@
 // Roles reales según el SDD (sección 6): el rol VERIFIER no existe como rol independiente.
 // El Vendedor (seller) revisa dedicatorias y hace entregas; el Administrador (admin) verifica pagos
-// y gestiona roles/catálogo. El comprador no es un rol de staff asignable.
+// y gestiona roles/catálogo. Las cuentas pueden rotar temporalmente entre estos roles.
 export type StaffRole = 'admin' | 'seller';
 export type UserRole = StaffRole | 'comprador';
 
@@ -236,10 +236,11 @@ export interface StaffUser {
   id: string;
   email: string;
   fullName: string;
-  role: StaffRole;
+  role: UserRole;
   isActive: boolean;
   expiresAt?: string | null;
   roleAssignedAt?: string | null;
+  roleExpiresAt?: string | null;
 }
 
 export type NotificationMode = 'MANUAL' | 'AUTOMATIC';

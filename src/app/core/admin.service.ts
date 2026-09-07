@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { MetricsSummary, NotificationMode, RegisterResponse, StaffRole, StaffUser } from './api.models';
+import { MetricsSummary, NotificationMode, RegisterResponse, StaffRole, StaffUser, UserRole } from './api.models';
 
 interface RawStaffUser {
   id: string;
@@ -9,8 +9,9 @@ interface RawStaffUser {
   name: string;
   isActive: boolean;
   expiresAt?: string | null;
+  roleExpiresAt?: string | null;
   createdAt?: string;
-  role: { slug: StaffRole; name: string };
+  role: { slug: UserRole; name: string };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -28,12 +29,13 @@ export class AdminService {
         role: user.role.slug,
         isActive: user.isActive,
         expiresAt: user.expiresAt,
+        roleExpiresAt: user.roleExpiresAt,
       }))),
     );
   }
 
-  reassignRole(userId: string, newRole: StaffRole) {
-    return this.api.patch<StaffUser>(`/users/${userId}/role`, { newRole });
+  reassignRole(userId: string, newRole: UserRole, roleExpiresAt: string) {
+    return this.api.patch<StaffUser>(`/users/${userId}/role`, { newRole, roleExpiresAt });
   }
 
   toggleUser(userId: string, isActive: boolean) {
