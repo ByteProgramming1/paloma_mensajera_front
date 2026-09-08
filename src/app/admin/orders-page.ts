@@ -6,12 +6,14 @@ import { Order } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
 import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
+import { CopyButton } from '../shared/copy-button';
+import { buildTeamsPickupMessage } from '../shared/teams-message';
 
 type Tab = 'pagos' | 'todos';
 
 @Component({
   selector: 'app-admin-orders-page',
-  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge],
+  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge, CopyButton],
   template: `
     <h1 class="page-title mb-1">Pedidos</h1>
     <p class="page-lede mb-6">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
@@ -76,6 +78,11 @@ type Tab = 'pagos' | 'todos';
                     }
                   </ul>
                 </div>
+                @if (!order.selfPickup) {
+                  <div class="sm:col-span-2">
+                    <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
+                  </div>
+                }
               </div>
             }
 
@@ -130,5 +137,9 @@ export class AdminOrdersPage {
   protected async verifyPayment(order: Order, verified: boolean): Promise<void> {
     await firstValueFrom(this.ordersApi.verifyPayment(order.id, verified, this.notesDrafts[order.id]));
     this.load();
+  }
+
+  protected teamsMessage(order: Order): string {
+    return buildTeamsPickupMessage(order);
   }
 }

@@ -14,9 +14,10 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
   imports: [FormsModule, CurrencyPipe, RouterLink],
   template: `
     <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-text-primary">Cuéntanos a quién va dirigido</h1>
-    <p class="page-lede mb-8">
+    <p class="page-lede mb-1">
       Tu dedicatoria pasa por una revisión manual antes de habilitar la rifa — no hay filtros automáticos, la lee una persona del equipo.
     </p>
+    <p class="field-hint mb-8">Los campos marcados con <span class="font-bold text-status-error">*</span> son obligatorios.</p>
 
     @if (cart.itemCount() === 0) {
       <p class="field-hint">Tu carrito está vacío. <a routerLink="/catalogo" class="text-brand-magenta underline">Vuelve al catálogo</a>.</p>
@@ -27,19 +28,19 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
             <h2 class="section-title">Tus datos</h2>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="field">
-                <span class="field-label">Nombre completo</span>
+                <span class="field-label field-required">Nombre completo</span>
                 <input class="field-input" name="buyerFullName" required [(ngModel)]="form.buyerFullName" placeholder="Tu nombre completo" />
               </label>
               <label class="field">
-                <span class="field-label">Correo institucional</span>
+                <span class="field-label field-required">Correo institucional</span>
                 <input class="field-input" name="buyerEmail" type="email" required [(ngModel)]="form.buyerEmail" [disabled]="!!auth.session()" />
               </label>
               <label class="field">
-                <span class="field-label">Teléfono de contacto</span>
+                <span class="field-label field-required">Teléfono de contacto</span>
                 <input class="field-input" name="buyerPhone" required [(ngModel)]="form.buyerPhone" placeholder="300 000 0000" />
               </label>
               <label class="field">
-                <span class="field-label">Tipo</span>
+                <span class="field-label field-required">Tipo</span>
                 <select class="field-input" name="buyerType" required [(ngModel)]="form.buyerType">
                   <option value="ESTUDIANTE">Estudiante</option>
                   <option value="PROFESOR">Profesor</option>
@@ -47,7 +48,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
                 </select>
               </label>
               <label class="field sm:col-span-2">
-                <span class="field-label">{{ form.buyerType === 'ESTUDIANTE' ? 'Carrera o programa' : 'Área de trabajo' }}</span>
+                <span class="field-label field-required">{{ form.buyerType === 'ESTUDIANTE' ? 'Carrera o programa' : 'Área de trabajo' }}</span>
                 @if (form.buyerType === 'ESTUDIANTE') {
                   <select class="field-input" name="buyerCareerOrArea" required [(ngModel)]="form.buyerCareerOrArea">
                     <option value="" disabled>Selecciona tu carrera</option>
@@ -72,11 +73,11 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
             @if (!form.selfPickup) {
               <div class="grid gap-4 sm:grid-cols-2">
                 <label class="field sm:col-span-2">
-                  <span class="field-label">Nombre completo del destinatario</span>
+                  <span class="field-label field-required">Nombre completo del destinatario</span>
                   <input class="field-input" name="recipientFullName" required [(ngModel)]="form.recipientFullName" />
                 </label>
                 <label class="field">
-                  <span class="field-label">Carrera / área del destinatario</span>
+                  <span class="field-label field-required">Carrera / área del destinatario</span>
                   <select class="field-input" name="recipientCareerOrArea" required [(ngModel)]="form.recipientCareerOrArea">
                     <option value="" disabled>Selecciona la carrera</option>
                     @for (program of programs; track program) {
@@ -85,7 +86,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
                   </select>
                 </label>
                 <label class="field">
-                  <span class="field-label">Usuario de Teams del destinatario</span>
+                  <span class="field-label field-required">Usuario de Teams del destinatario</span>
                   <input class="field-input" name="recipientTeamsUser" required [(ngModel)]="form.recipientTeamsUser" placeholder="usuario@escuelaing.edu.co" />
                 </label>
               </div>
@@ -101,7 +102,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
             <h2 class="section-title">Tu dedicatoria</h2>
             <p class="field-hint">Un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
             <label class="field">
-              <span class="field-label">Dedicatoria</span>
+              <span class="field-label field-required">Dedicatoria</span>
               <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" required [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje…"></textarea>
             </label>
             <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">

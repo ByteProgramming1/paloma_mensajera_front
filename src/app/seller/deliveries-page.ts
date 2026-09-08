@@ -6,12 +6,14 @@ import { OrdersService } from '../core/orders.service';
 import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { Icon } from '../shared/icon';
+import { CopyButton } from '../shared/copy-button';
+import { buildTeamsPickupMessage } from '../shared/teams-message';
 
 const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', 'DELIVERED']);
 
 @Component({
   selector: 'app-deliveries-page',
-  imports: [FormsModule, ConfirmAction, OrderStatusBadge, Icon],
+  imports: [FormsModule, ConfirmAction, OrderStatusBadge, Icon, CopyButton],
   template: `
     <h1 class="page-title mb-1">Entregas</h1>
     <p class="page-lede mb-6">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado.</p>
@@ -84,8 +86,11 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
                 @if (order.status !== 'DELIVERED') {
                   <app-confirm-action label="Marcar entregado" confirmPrompt="¿Confirmas la entrega?" (confirm)="markDelivered(order)" />
                 }
-                @if (!order.selfPickup && !order.teamsNotificationSent) {
-                  <button type="button" class="btn-secondary" (click)="notify(order)">Notificar por Teams</button>
+                @if (!order.selfPickup) {
+                  <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
+                  @if (!order.teamsNotificationSent) {
+                    <button type="button" class="btn-ghost" (click)="notify(order)">Notificar automático</button>
+                  }
                 }
               </div>
             }
@@ -147,5 +152,9 @@ export class DeliveriesPage {
   protected async notify(order: Order): Promise<void> {
     await firstValueFrom(this.ordersApi.notifyTeams(order.id));
     this.load();
+  }
+
+  protected teamsMessage(order: Order): string {
+    return buildTeamsPickupMessage(order);
   }
 }
