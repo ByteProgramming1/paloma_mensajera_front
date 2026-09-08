@@ -5,20 +5,24 @@ import { Order } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
 import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
+import { Icon } from '../shared/icon';
 
 const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', 'DELIVERED']);
 
 @Component({
   selector: 'app-deliveries-page',
-  imports: [FormsModule, ConfirmAction, OrderStatusBadge],
+  imports: [FormsModule, ConfirmAction, OrderStatusBadge, Icon],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Entregas</h1>
-    <p class="mb-6 max-w-[620px] text-[15px] text-text-secondary">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado.</p>
+    <h1 class="page-title mb-1">Entregas</h1>
+    <p class="page-lede mb-6">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado.</p>
 
-    <div class="mb-6 flex flex-wrap items-center gap-2">
-      <input class="field-input max-w-[320px]" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Buscar destinatario por nombre…" />
-      <label class="flex items-center gap-2 text-[14px] text-text-secondary">
-        <input type="checkbox" [ngModel]="showAll()" (ngModelChange)="toggleShowAll($event)" />
+    <div class="mb-6 flex flex-wrap items-center gap-4">
+      <div class="relative max-w-[320px] flex-1">
+        <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+        <input class="field-input pl-9" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Buscar destinatario por nombre…" />
+      </div>
+      <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
+        <input type="checkbox" class="accent-brand-magenta size-4" [ngModel]="showAll()" (ngModelChange)="toggleShowAll($event)" />
         Ver todas (entregadas y pendientes)
       </label>
     </div>
@@ -27,11 +31,14 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
     } @else if (filteredOrders().length === 0) {
-      <p class="field-hint">No hay pedidos para mostrar con ese criterio.</p>
+      <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
+        <app-icon name="check" [size]="28" [strokeWidth]="1.5" class="text-status-entregado" />
+        <p class="text-[14px] text-text-secondary">No hay pedidos para mostrar con ese criterio.</p>
+      </div>
     } @else {
       <ul class="flex flex-col gap-4">
         @for (order of filteredOrders(); track order.id) {
-          <li class="card-surface flex flex-col gap-3 p-5">
+          <li class="card-surface flex flex-col gap-3 p-5" [class.opacity-70]="order.status === 'DELIVERED'">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-semibold text-text-primary">
                 <span class="font-normal text-text-secondary">Entrega a:</span> {{ order.recipientFullName }}
@@ -39,7 +46,9 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
               </p>
               <div class="flex items-center gap-2">
                 @if (order.isAnonymous) {
-                  <span class="rounded-full bg-bg-base px-2.5 py-1 text-[12px] font-semibold text-text-secondary">🔒 Anónimo</span>
+                  <span class="inline-flex items-center gap-1 rounded-full bg-bg-base px-2.5 py-1 text-[12px] font-semibold text-text-secondary">
+                    <app-icon name="lock" [size]="12" [strokeWidth]="2" /> Anónimo
+                  </span>
                 }
                 <app-order-status-badge [status]="order.status" />
               </div>

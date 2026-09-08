@@ -4,16 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { StaffRole, StaffUser, UserRole } from '../core/api.models';
 import { AdminService } from '../core/admin.service';
+import { Icon } from '../shared/icon';
 
 @Component({
   selector: 'app-admin-users-page',
-  imports: [FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe, Icon],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Roles y turnos</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">Reasigna o desactiva a cualquier persona por su correo para acomodar la rotación de turnos, sin crear cuentas nuevas.</p>
+    <h1 class="page-title mb-1">Roles y turnos</h1>
+    <p class="page-lede mb-8">Reasigna o desactiva a cualquier persona por su correo para acomodar la rotación de turnos, sin crear cuentas nuevas.</p>
 
     <section class="card-surface mb-8 p-6">
-      <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Crear cuenta temporal de staff</h2>
+      <h2 class="section-title mb-4">Crear cuenta temporal de staff</h2>
       <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="createTemporary()">
         <label class="field">
           <span class="field-label">Nombre</span>
@@ -41,7 +42,10 @@ import { AdminService } from '../core/admin.service';
 
     <label class="field mb-4 max-w-[320px]">
       <span class="field-label">Buscar por nombre o correo</span>
-      <input class="field-input" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" name="nameFilter" placeholder="Ej. Astrih González" />
+      <div class="relative">
+        <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+        <input class="field-input pl-9" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" name="nameFilter" placeholder="Ej. Astrih González" />
+      </div>
     </label>
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
@@ -54,9 +58,15 @@ import { AdminService } from '../core/admin.service';
       <ul class="flex flex-col gap-3">
         @for (user of filteredUsers(); track user.id) {
           <li class="card-surface flex flex-wrap items-center justify-between gap-4 p-4">
-            <div>
-              <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
-              <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · cuenta vence ' + (user.expiresAt | date:'short') : '' }}{{ user.roleExpiresAt ? ' · rol vence ' + (user.roleExpiresAt | date:'short') : '' }}</p>
+            <div class="flex items-center gap-3">
+              <span
+                class="flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-text-on-accent"
+                [class]="user.isActive ? 'bg-brand-magenta' : 'bg-text-secondary'"
+              >{{ initialsOf(user.fullName) }}</span>
+              <div>
+                <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
+                <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · cuenta vence ' + (user.expiresAt | date:'short') : '' }}{{ user.roleExpiresAt ? ' · rol vence ' + (user.roleExpiresAt | date:'short') : '' }}</p>
+              </div>
             </div>
             <div class="flex items-center gap-3">
               <select class="field-input !h-9 max-w-[160px]" [ngModel]="pendingRole(user)?.role ?? user.role" (ngModelChange)="prepareReassign(user, $event)">
@@ -118,6 +128,11 @@ export class AdminUsersPage {
     } finally {
       this.isLoading.set(false);
     }
+  }
+
+  protected initialsOf(fullName: string): string {
+    const parts = fullName.trim().split(/\s+/);
+    return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase();
   }
 
   protected pendingRole(user: StaffUser): { role: UserRole; expiresAt: string } | undefined {

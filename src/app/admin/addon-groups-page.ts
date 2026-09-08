@@ -3,18 +3,19 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ProductAddOnGroup } from '../core/api.models';
 import { AddOnGroupsService } from '../core/addon-groups.service';
+import { Icon } from '../shared/icon';
 
 @Component({
   selector: 'app-admin-addon-groups-page',
-  imports: [FormsModule],
+  imports: [FormsModule, Icon],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Acompañantes</h1>
-    <p class="mb-8 max-w-[640px] text-[15px] text-text-secondary">
+    <h1 class="page-title mb-1">Acompañantes</h1>
+    <p class="page-lede mb-8">
       Catálogo reutilizable de acompañantes (ej. tipos de carta): créalos aquí una sola vez, con su imagen, y luego asócialos a los combos que quieras desde el Catálogo — sin tener que volver a crearlos por cada producto.
     </p>
 
     <section class="card-surface mb-8 p-6">
-      <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Nuevo grupo</h2>
+      <h2 class="section-title mb-4">Nuevo grupo</h2>
       <div class="flex gap-2">
         <input class="field-input max-w-[280px]" [(ngModel)]="newGroupName" name="newGroupName" placeholder="Ej. Cartas" />
         <button type="button" class="btn-primary" (click)="createGroup()">Crear grupo</button>
@@ -25,28 +26,31 @@ import { AddOnGroupsService } from '../core/addon-groups.service';
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
     } @else if (groups().length === 0) {
-      <p class="field-hint">Todavía no hay grupos de acompañantes.</p>
+      <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
+        <app-icon name="envelope" [size]="32" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+        <p class="text-[14px] text-text-secondary">Todavía no hay grupos de acompañantes. Crea el primero arriba.</p>
+      </div>
     } @else {
       <ul class="flex flex-col gap-6">
         @for (group of groups(); track group.id) {
           <li class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="text-[16px] font-semibold text-text-primary">{{ group.name }}</h2>
+            <h2 class="section-title">{{ group.name }}</h2>
             <ul class="flex flex-wrap gap-3">
               @for (option of group.options; track option.id) {
-                <li class="flex flex-col items-center gap-2 rounded-[var(--radius-sm)] bg-bg-base p-3">
+                <li class="flex flex-col items-center gap-2 rounded-[var(--radius-sm)] bg-bg-base p-3" [class.opacity-50]="!option.isActive">
                   <div class="flex size-16 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
                     @if (option.imageUrl) {
                       <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-cover" />
                     } @else {
-                      <span class="text-2xl" aria-hidden="true">💌</span>
+                      <app-icon name="envelope" [size]="20" [strokeWidth]="1.5" class="text-brand-magenta/40" />
                     }
                   </div>
-                  <span class="max-w-[90px] truncate text-[12px] text-text-primary">{{ option.name }}</span>
-                  <label class="cursor-pointer text-[12px] text-brand-magenta underline">
+                  <span class="max-w-[90px] truncate text-[12px] font-medium text-text-primary">{{ option.name }}</span>
+                  <label class="cursor-pointer text-[12px] text-brand-magenta underline underline-offset-2">
                     Foto
                     <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" (change)="uploadOptionImage(option.id, $event)" />
                   </label>
-                  <button type="button" class="text-[12px] text-text-secondary underline" (click)="toggleOption(group, option)">
+                  <button type="button" class="text-[12px] text-text-secondary underline underline-offset-2" (click)="toggleOption(group, option)">
                     {{ option.isActive ? 'Desactivar' : 'Activar' }}
                   </button>
                 </li>

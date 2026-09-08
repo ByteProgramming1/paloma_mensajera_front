@@ -10,11 +10,11 @@ import { OrdersService } from '../core/orders.service';
   selector: 'app-admin-raffle-draw-page',
   imports: [DatePipe, FormsModule],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Sorteo de la rifa</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">Solo los números con pago verificado entran al sorteo. Puedes repetir la ronda tantas veces como premios tengas — cada ronda excluye a los ganadores anteriores.</p>
+    <h1 class="page-title mb-1">Sorteo de la rifa</h1>
+    <p class="page-lede mb-8">Solo los números con pago verificado entran al sorteo. Puedes repetir la ronda tantas veces como premios tengas — cada ronda excluye a los ganadores anteriores.</p>
 
     <section class="card-surface mb-8 flex flex-col gap-3 p-6">
-      <h2 class="text-[16px] font-semibold text-text-primary">Cantidad de números de la rifa</h2>
+      <h2 class="section-title">Cantidad de números de la rifa</h2>
       <p class="field-hint">Antes de abrir las ventas, define hasta qué número va a llegar la rifa (ej. 100). Puedes subirlo más adelante — solo agrega los números que falten, nunca borra los que ya existen.</p>
       <div class="flex flex-wrap items-end gap-3">
         <label class="field">
@@ -29,9 +29,9 @@ import { OrdersService } from '../core/orders.service';
       @if (configureError()) { <p class="field-error">{{ configureError() }}</p> }
     </section>
 
-    <div class="mb-8 flex flex-col items-center gap-6 rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated p-10">
+    <div class="mb-8 flex flex-col items-center gap-6 overflow-hidden rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated p-10">
       <div
-        class="mono-figure flex size-40 items-center justify-center rounded-full border-4 border-brand-magenta text-[48px] text-brand-magenta transition-transform duration-700"
+        class="mono-figure relative flex size-40 items-center justify-center rounded-full border-4 border-brand-magenta text-[48px] font-semibold text-brand-magenta shadow-[0_8px_28px_-8px_rgba(151,2,123,0.4)] transition-transform duration-700"
         [class.animate-spin]="isSpinning()"
       >{{ lastResult() ? lastResult()!.raffleNumber : '?' }}</div>
 
@@ -43,8 +43,8 @@ import { OrdersService } from '../core/orders.service';
     </div>
 
     @if (lastResult(); as result) {
-      <section class="card-surface mb-8 p-6">
-        <h2 class="mb-3 text-[16px] font-semibold text-text-primary">Ganador — número {{ result.raffleNumber }}</h2>
+      <section class="card-surface paloma-enter mb-8 p-6">
+        <h2 class="section-title mb-3">Ganador — número <span class="mono-figure text-brand-magenta">{{ result.raffleNumber }}</span></h2>
         <p class="text-[14px] text-text-secondary">Remitente: {{ result.buyerFullName }}</p>
         <p class="text-[14px] text-text-secondary">Destinatario: {{ result.recipientFullName }}</p>
         <ul class="mt-2 flex flex-col gap-1 text-[14px] text-text-secondary">
@@ -54,14 +54,14 @@ import { OrdersService } from '../core/orders.service';
     }
 
     <section class="card-surface mb-8 p-6">
-      <h2 class="text-[16px] font-semibold text-text-primary">Números confirmados (pago verificado)</h2>
+      <h2 class="section-title">Números confirmados (pago verificado)</h2>
       <p class="field-hint mb-4">Se va llenando a medida que se verifican pagos — solo entran aquí compradores con pago verificado y pedido no cancelado.</p>
       @if (verifiedParticipants().length === 0) {
         <p class="field-hint">Todavía no hay ningún número confirmado.</p>
       } @else {
         <div class="mb-5 flex flex-wrap gap-3">
           @for (entry of verifiedParticipants(); track entry.order.id) {
-            <div class="mono-figure flex size-14 items-center justify-center rounded-[var(--radius-sm)] bg-brand-magenta text-[16px] text-text-on-accent" [title]="entry.order.buyerFullName ?? 'Anónimo'">
+            <div class="paloma-enter mono-figure flex size-14 items-center justify-center rounded-[var(--radius-sm)] bg-brand-magenta text-[16px] font-medium text-text-on-accent" [title]="entry.order.buyerFullName ?? 'Anónimo'">
               {{ entry.order.raffleNumber }}
             </div>
           }
@@ -92,14 +92,14 @@ import { OrdersService } from '../core/orders.service';
     </section>
 
     <section>
-      <h2 class="mb-3 text-[16px] font-semibold text-text-primary">Historial de rondas</h2>
+      <h2 class="section-title mb-3">Historial de rondas</h2>
       @if (history().length === 0) {
         <p class="field-hint">Todavía no se ha hecho ningún sorteo.</p>
       } @else {
         <ul class="flex flex-col gap-2">
           @for (round of history(); track round.id) {
-            <li class="flex items-center justify-between rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated px-4 py-3 text-[14px] text-text-secondary">
-              <span class="mono-figure text-brand-magenta">{{ round.raffleNumber.number }}</span>
+            <li class="flex items-center justify-between rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated px-4 py-3 text-[14px] text-text-secondary transition hover:border-brand-magenta/30">
+              <span class="mono-figure font-semibold text-brand-magenta">{{ round.raffleNumber.number }}</span>
               <span>{{ round.order.deliveryDetail.recipientFullName }}</span>
               <span>{{ round.drawnAt | date:'short' }}</span>
             </li>

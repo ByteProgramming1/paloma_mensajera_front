@@ -6,16 +6,17 @@ import { firstValueFrom } from 'rxjs';
 import { Product, ProductAddOnGroup, ProductType } from '../core/api.models';
 import { ProductsService } from '../core/products.service';
 import { AddOnGroupsService } from '../core/addon-groups.service';
+import { Icon } from '../shared/icon';
 
 @Component({
   selector: 'app-admin-products-page',
-  imports: [FormsModule, CurrencyPipe, RouterLink],
+  imports: [FormsModule, CurrencyPipe, RouterLink, Icon],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Catálogo</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">Administra combos, adicionales, precios, stock e imágenes.</p>
+    <h1 class="page-title mb-1">Catálogo</h1>
+    <p class="page-lede mb-8">Administra combos, adicionales, precios, stock e imágenes.</p>
 
     <section class="card-surface mb-8 p-6">
-      <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Nuevo producto</h2>
+      <h2 class="section-title mb-4">Nuevo producto</h2>
       <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()">
         <label class="field">
           <span class="field-label">Nombre</span>
@@ -44,16 +45,25 @@ import { AddOnGroupsService } from '../core/addon-groups.service';
 
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
+    } @else if (products().length === 0) {
+      <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
+        <app-icon name="gift" [size]="32" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+        <p class="text-[14px] text-text-secondary">Todavía no hay productos en el catálogo. Crea el primero arriba.</p>
+      </div>
     } @else {
       <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (product of products(); track product.id) {
           <li class="card-surface flex flex-col gap-3 p-5">
-            <div class="flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
+            <div class="relative flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
               @if (product.imageUrl) {
                 <img [src]="product.imageUrl" [alt]="product.name" class="size-full object-cover" />
               } @else {
-                <span class="text-3xl" aria-hidden="true">🎁</span>
+                <app-icon name="gift" [size]="28" [strokeWidth]="1.4" class="text-brand-magenta/35" />
               }
+              <span
+                class="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                [class]="product.isActive ? 'bg-status-entregado text-text-on-accent' : 'bg-text-secondary text-text-on-accent'"
+              >{{ product.isActive ? 'Activo' : 'Inactivo' }}</span>
             </div>
             <label class="field">
               <span class="field-label">Foto del producto</span>
@@ -76,7 +86,7 @@ import { AddOnGroupsService } from '../core/addon-groups.service';
                 <input class="field-input" type="number" [ngModel]="product.stock" (ngModelChange)="update(product, { stock: $event })" />
               </label>
             </div>
-            <p class="mono-figure text-[15px] text-brand-magenta">{{ product.price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+            <p class="mono-figure text-[15px] font-semibold text-brand-magenta">{{ product.price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
             <button type="button" class="btn" [class]="product.isActive ? 'btn-secondary' : 'btn-primary'" (click)="update(product, { isActive: !product.isActive })">
               {{ product.isActive ? 'Desactivar' : 'Activar' }}
             </button>

@@ -10,15 +10,21 @@ import { RaffleChip, RaffleChipState } from '../shared/raffle-chip';
   selector: 'app-raffle-page',
   imports: [RaffleChip],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Elige tu número de la rifa</h1>
-    <p class="mb-6 max-w-[560px] text-[15px] text-text-secondary">Tu número queda asegurado sin límite de tiempo apenas lo eliges — solo se libera si tu pago llega a rechazarse.</p>
+    <h1 class="mb-1 text-[26px] font-semibold tracking-tight text-text-primary">Elige tu número de la rifa</h1>
+    <p class="page-lede mb-4">Tu número queda asegurado sin límite de tiempo apenas lo eliges — solo se libera si tu pago llega a rechazarse.</p>
+
+    <div class="mb-6 flex flex-wrap items-center gap-4 text-[12px] text-text-secondary">
+      <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border-[1.5px] border-brand-magenta"></span> Disponible</span>
+      <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-border-soft"></span> Tomado</span>
+      <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-magenta"></span> Tu elección</span>
+    </div>
 
     @if (errorMessage()) { <p class="field-error mb-4" role="alert">{{ errorMessage() }}</p> }
 
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando números disponibles…</p>
     } @else {
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-wrap gap-3 pb-24">
         @for (number of numbers(); track number.id) {
           <app-raffle-chip [number]="number.number" [state]="stateOf(number)" (pick)="pick(number)" />
         }
@@ -26,7 +32,7 @@ import { RaffleChip, RaffleChipState } from '../shared/raffle-chip';
     }
 
     @if (pendingNumber(); as pending) {
-      <div class="mt-6 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-brand-magenta bg-bg-surface-elevated p-4">
+      <div class="paloma-enter sticky bottom-4 flex flex-wrap items-center gap-3 rounded-[var(--radius-md)] border border-brand-magenta bg-bg-surface-elevated p-4 shadow-[0_4px_12px_rgba(41,20,33,0.08),0_20px_44px_-16px_rgba(41,20,33,0.28)]">
         <p class="text-[15px] text-text-primary">¿Confirmas el número <span class="mono-figure font-semibold text-brand-magenta">{{ pending.number }}</span>? No podrás cambiarlo después.</p>
         <button type="button" class="btn-primary" [disabled]="isSubmitting()" (click)="confirmSelection(pending)">
           {{ isSubmitting() ? 'Confirmando…' : 'Sí, confirmar' }}

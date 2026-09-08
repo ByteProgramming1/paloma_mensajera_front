@@ -13,12 +13,15 @@ type Tab = 'pagos' | 'todos';
   selector: 'app-admin-orders-page',
   imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Pedidos</h1>
-    <p class="mb-6 max-w-[640px] text-[15px] text-text-secondary">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
+    <h1 class="page-title mb-1">Pedidos</h1>
+    <p class="page-lede mb-6">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
 
-    <div class="mb-6 flex flex-wrap gap-2">
-      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'pagos' ? 'btn-primary' : 'btn-secondary'" (click)="tab.set('pagos')">Verificar pagos</button>
-      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'todos' ? 'btn-primary' : 'btn-secondary'" (click)="tab.set('todos')">Todos los pedidos</button>
+    <div class="mb-6 inline-flex gap-1 rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated p-1">
+      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'pagos' ? 'btn-primary' : 'btn-ghost'" (click)="tab.set('pagos')">
+        Verificar pagos
+        @if (pendingCount() > 0) { <span class="ml-1.5 rounded-full bg-status-pendiente px-1.5 py-0.5 text-[11px] font-bold text-text-on-accent">{{ pendingCount() }}</span> }
+      </button>
+      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'todos' ? 'btn-primary' : 'btn-ghost'" (click)="tab.set('todos')">Todos los pedidos</button>
     </div>
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
@@ -42,32 +45,32 @@ type Tab = 'pagos' | 'todos';
             <p class="mono-figure text-[16px] text-brand-magenta">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
 
             @if (tab() === 'todos') {
-              <div class="grid gap-x-6 gap-y-1 rounded-[var(--radius-sm)] bg-bg-base p-3 text-[13px] text-text-secondary sm:grid-cols-2">
-                <p><span class="field-label">Fecha</span> {{ order.createdAt | date:'medium' }}</p>
-                <p><span class="field-label">Anónimo</span> {{ order.isAnonymous ? 'Sí' : 'No' }}</p>
-                <p><span class="field-label">Correo comprador</span> {{ order.buyerEmail ?? '—' }}</p>
-                <p><span class="field-label">Teléfono comprador</span> {{ order.buyerPhone ?? '—' }}</p>
-                <p><span class="field-label">Tipo comprador</span> {{ order.buyerType ?? '—' }}</p>
-                <p><span class="field-label">Carrera / área comprador</span> {{ order.buyerCareerOrArea ?? '—' }}</p>
-                <p><span class="field-label">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
-                <p><span class="field-label">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
-                <p><span class="field-label">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
-                <p><span class="field-label">N° rifa</span> {{ order.raffleNumber ?? '—' }}</p>
+              <div class="paloma-enter grid gap-x-6 gap-y-3 rounded-[var(--radius-sm)] bg-bg-base p-4 text-[13px] text-text-primary sm:grid-cols-2">
+                <p><span class="field-label block">Fecha</span> {{ order.createdAt | date:'medium' }}</p>
+                <p><span class="field-label block">Anónimo</span> {{ order.isAnonymous ? 'Sí' : 'No' }}</p>
+                <p><span class="field-label block">Correo comprador</span> {{ order.buyerEmail ?? '—' }}</p>
+                <p><span class="field-label block">Teléfono comprador</span> {{ order.buyerPhone ?? '—' }}</p>
+                <p><span class="field-label block">Tipo comprador</span> {{ order.buyerType ?? '—' }}</p>
+                <p><span class="field-label block">Carrera / área comprador</span> {{ order.buyerCareerOrArea ?? '—' }}</p>
+                <p><span class="field-label block">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
+                <p><span class="field-label block">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
+                <p><span class="field-label block">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
+                <p><span class="field-label block">N° rifa</span> <span class="mono-figure">{{ order.raffleNumber ?? '—' }}</span></p>
                 <p>
-                  <span class="field-label">Dedicatoria</span>
+                  <span class="field-label block">Dedicatoria</span>
                   {{ order.messageReview?.humanReviewStatus ?? '—' }}
                   @if (order.messageReview?.rejectionReason) { ({{ order.messageReview!.rejectionReason }}) }
                 </p>
                 <p>
-                  <span class="field-label">Pago</span>
+                  <span class="field-label block">Pago</span>
                   @if (order.payment) {
                     {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod }}
                     @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
                   } @else { Sin registro de pago }
                 </p>
                 <div class="sm:col-span-2">
-                  <span class="field-label">Productos</span>
-                  <ul>
+                  <span class="field-label block">Productos</span>
+                  <ul class="mt-1 flex flex-col gap-0.5">
                     @for (item of order.items; track item.id) {
                       <li>{{ item.quantity }}× {{ item.productName ?? item.productId }} · {{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0' }}{{ item.selectedAddOnOption ? ' — ' + item.selectedAddOnOption.name : '' }}</li>
                     }
@@ -105,6 +108,8 @@ export class AdminOrdersPage {
       default: return all;
     }
   });
+
+  protected readonly pendingCount = computed(() => this.orders().filter((order) => order.status === 'PAYMENT_PENDING').length);
 
   constructor() {
     this.load();

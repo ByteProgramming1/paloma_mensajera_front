@@ -11,37 +11,39 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
   imports: [CurrencyPipe, RouterLink, OrderStatusBadge],
   template: `
     @if (order(); as order) {
-      <div class="max-w-[640px]">
+      <div class="paloma-enter max-w-[640px]">
         <div class="mb-6 flex items-center gap-3">
-          <h1 class="text-[26px] font-semibold text-text-primary">Pedido {{ order.orderCode }}</h1>
+          <h1 class="text-[26px] font-semibold tracking-tight text-text-primary">Pedido <span class="mono-figure">{{ order.orderCode }}</span></h1>
           <app-order-status-badge [status]="order.status" />
         </div>
 
         @switch (true) {
           @case (order.status === 'MESSAGE_PENDING_REVIEW') {
-            <p class="text-[15px] text-text-secondary">Un vendedor va a leer tu dedicatoria pronto. No necesitas hacer nada más por ahora — vuelve a esta página para elegir tu número de rifa apenas la aprueben.</p>
+            <p class="text-[15px] leading-relaxed text-text-secondary">Un vendedor va a leer tu dedicatoria pronto. No necesitas hacer nada más por ahora — vuelve a esta página para elegir tu número de rifa apenas la aprueben.</p>
           }
           @case (order.status === 'MESSAGE_REJECTED') {
-            <p class="field-error">Tu dedicatoria fue rechazada{{ order.messageReview?.rejectionReason ? ': ' + order.messageReview?.rejectionReason : '.' }}</p>
+            <p class="field-error text-[14px]">Tu dedicatoria fue rechazada{{ order.messageReview?.rejectionReason ? ': ' + order.messageReview?.rejectionReason : '.' }}</p>
             <a routerLink="/catalogo" class="btn-primary mt-4 inline-flex">Editar y volver a enviar</a>
           }
           @case (order.status === 'MESSAGE_APPROVED') {
-            <p class="mb-4 text-[15px] text-text-secondary">¡Tu dedicatoria fue aprobada! Ya puedes elegir tu número de la rifa.</p>
+            <p class="mb-4 text-[15px] leading-relaxed text-text-secondary">¡Tu dedicatoria fue aprobada! Ya puedes elegir tu número de la rifa.</p>
             <a [routerLink]="['/pedidos', order.id, 'rifa']" class="btn-primary inline-flex">Elegir mi número</a>
           }
           @case (order.status === 'PAYMENT_PENDING') {
-            <p class="mb-2 text-[15px] text-text-secondary">Tu número de rifa es:</p>
-            <p class="mono-figure mb-4 text-[40px] text-brand-magenta">{{ order.raffleNumber }}</p>
+            <div class="card-surface mb-4 flex flex-col items-center gap-1 p-6 text-center">
+              <p class="text-[13px] font-medium uppercase tracking-wide text-text-secondary">Tu número de rifa</p>
+              <p class="mono-figure text-[48px] font-semibold leading-none text-brand-magenta">{{ order.raffleNumber }}</p>
+            </div>
             <div class="card-surface p-5">
-              <p class="mb-2 font-semibold text-text-primary">Paga por Nequi</p>
-              <p class="text-[14px] text-text-secondary">Transfiere {{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }} por Nequi. No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.</p>
+              <p class="section-title mb-2">Paga por Nequi</p>
+              <p class="text-[14px] leading-relaxed text-text-secondary">Transfiere <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span> por Nequi. No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.</p>
             </div>
           }
           @case (order.status === 'PAYMENT_REJECTED') {
-            <p class="field-error">Tu pago no pudo verificarse. Tu número de rifa fue liberado. Si crees que es un error, contacta al equipo en el stand.</p>
+            <p class="field-error text-[14px]">Tu pago no pudo verificarse. Tu número de rifa fue liberado. Si crees que es un error, contacta al equipo en el stand.</p>
           }
           @default {
-            <p class="text-[15px] text-text-secondary">Tu pago fue verificado{{ order.raffleNumber ? ' — tu número es ' + order.raffleNumber : '' }}. Te avisaremos por Teams cuando tu regalo esté en camino.</p>
+            <p class="text-[15px] leading-relaxed text-text-secondary">Tu pago fue verificado{{ order.raffleNumber ? ' — tu número es ' + order.raffleNumber : '' }}. Te avisaremos por Teams cuando tu regalo esté en camino.</p>
           }
         }
 

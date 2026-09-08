@@ -2,16 +2,19 @@ import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../core/auth.service';
 import { UserRole } from '../core/api.models';
+import { Icon } from './icon';
 
 interface NavLink { path: string; label: string; }
 
+const ROLE_LABEL: Record<UserRole, string> = { admin: 'Administrador', seller: 'Vendedor', comprador: 'Comprador' };
+
 @Component({
   selector: 'app-top-nav',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, Icon],
   template: `
-    <header class="sticky top-0 z-10 border-b border-border-soft bg-bg-surface-elevated/95 backdrop-blur">
+    <header class="sticky top-0 z-10 border-b border-border-soft bg-bg-surface-elevated/90 backdrop-blur-md">
       <div class="flex min-h-[64px] items-center justify-between gap-4 px-4 sm:px-6">
-        <a [routerLink]="homePath()" class="flex shrink-0 items-center gap-2 text-[13px] font-semibold text-text-primary">
+        <a [routerLink]="homePath()" class="flex shrink-0 items-center gap-2.5 text-[13px] font-semibold text-text-primary">
           <img src="assets/logos/paloma-mensajera.png" alt="" class="h-8 w-8 object-contain sm:h-9 sm:w-9" />
           <span class="hidden sm:inline">Paloma Mensajera</span>
         </a>
@@ -20,44 +23,46 @@ interface NavLink { path: string; label: string; }
           @for (link of links(); track link.path) {
             <a
               [routerLink]="link.path"
-              routerLinkActive="bg-brand-magenta/10 text-brand-magenta"
-              class="whitespace-nowrap rounded-[var(--radius-sm)] px-3.5 py-2 text-[13px] font-medium text-text-secondary transition hover:text-brand-magenta"
+              routerLinkActive="!bg-brand-magenta/10 !text-brand-magenta"
+              class="whitespace-nowrap rounded-[var(--radius-sm)] px-3.5 py-2 text-[13px] font-medium text-text-secondary transition hover:bg-bg-base hover:text-text-primary"
             >{{ link.label }}</a>
           }
         </nav>
 
         <div class="hidden items-center gap-3 sm:flex">
-          <span class="text-[13px] text-text-secondary">{{ auth.session()?.user?.name }}</span>
+          <div class="text-right leading-tight">
+            <p class="text-[13px] font-medium text-text-primary">{{ auth.session()?.user?.name }}</p>
+            <p class="text-[11px] text-text-secondary">{{ roleLabel() }}</p>
+          </div>
           <button type="button" class="btn-ghost !px-3 !py-1.5 text-[13px]" (click)="logout()">Salir</button>
         </div>
 
         <button
           type="button"
-          class="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-primary sm:hidden"
+          class="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-text-primary transition hover:bg-bg-base sm:hidden"
           [attr.aria-expanded]="menuOpen()"
           aria-label="Abrir menú de navegación"
           (click)="menuOpen.set(!menuOpen())"
         >
-          @if (menuOpen()) {
-            <span aria-hidden="true" class="text-[22px] leading-none">✕</span>
-          } @else {
-            <span aria-hidden="true" class="text-[22px] leading-none">☰</span>
-          }
+          <app-icon [name]="menuOpen() ? 'close' : 'menu'" [size]="22" />
         </button>
       </div>
 
       @if (menuOpen()) {
-        <nav class="flex flex-col gap-1 border-t border-border-soft px-4 py-3 sm:hidden" aria-label="Navegación de la aplicación (móvil)">
+        <nav class="paloma-enter flex flex-col gap-1 border-t border-border-soft px-4 py-3 sm:hidden" aria-label="Navegación de la aplicación (móvil)">
           @for (link of links(); track link.path) {
             <a
               [routerLink]="link.path"
-              routerLinkActive="bg-brand-magenta/10 text-brand-magenta"
+              routerLinkActive="!bg-brand-magenta/10 !text-brand-magenta"
               class="rounded-[var(--radius-sm)] px-3.5 py-2.5 text-[15px] font-medium text-text-secondary transition"
               (click)="menuOpen.set(false)"
             >{{ link.label }}</a>
           }
           <div class="mt-2 flex items-center justify-between border-t border-border-soft pt-3">
-            <span class="text-[13px] text-text-secondary">{{ auth.session()?.user?.name }}</span>
+            <div class="leading-tight">
+              <p class="text-[13px] font-medium text-text-primary">{{ auth.session()?.user?.name }}</p>
+              <p class="text-[11px] text-text-secondary">{{ roleLabel() }}</p>
+            </div>
             <button type="button" class="btn-ghost !px-3 !py-1.5 text-[13px]" (click)="logout()">Salir</button>
           </div>
         </nav>
@@ -91,6 +96,11 @@ export class TopNav {
     const lastOrderId = this.lastOrderId();
     if (lastOrderId) links.push({ path: `/pedidos/${lastOrderId}`, label: 'Mi pedido' });
     return links;
+  }
+
+  protected roleLabel(): string {
+    const role = this.auth.session()?.roleSlug as UserRole | undefined;
+    return role ? ROLE_LABEL[role] : '';
   }
 
   protected homePath(): string {

@@ -27,37 +27,37 @@ const STATUS_LABELS: Record<string, string> = {
   selector: 'app-admin-metrics-page',
   imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Métricas</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
+    <h1 class="page-title mb-1">Métricas</h1>
+    <p class="page-lede mb-8">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
 
     @if (errorMessage()) { <p class="field-error">{{ errorMessage() }}</p> }
     @if (metrics(); as metrics) {
       <div class="mb-8 grid gap-4 sm:grid-cols-3">
         <div class="card-surface p-5">
           <p class="field-label">Dedicatorias por revisar</p>
-          <p class="mono-figure text-[28px] text-status-pendiente">{{ metrics.ordersByStatus['MESSAGE_PENDING_REVIEW'] ?? 0 }}</p>
+          <p class="mono-figure mt-1 text-[30px] font-semibold leading-none text-status-pendiente">{{ metrics.ordersByStatus['MESSAGE_PENDING_REVIEW'] ?? 0 }}</p>
         </div>
         <div class="card-surface p-5">
           <p class="field-label">Pagos por verificar</p>
-          <p class="mono-figure text-[28px] text-status-pendiente">{{ metrics.ordersByStatus['PAYMENT_PENDING'] ?? 0 }}</p>
+          <p class="mono-figure mt-1 text-[30px] font-semibold leading-none text-status-pendiente">{{ metrics.ordersByStatus['PAYMENT_PENDING'] ?? 0 }}</p>
         </div>
         <div class="card-surface p-5">
           <p class="field-label">Ingresos totales</p>
-          <p class="mono-figure text-[28px] text-brand-magenta">{{ metrics.totalRevenue | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+          <p class="mono-figure mt-1 text-[30px] font-semibold leading-none text-brand-magenta">{{ metrics.totalRevenue | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
         </div>
       </div>
 
       <section class="card-surface mb-8 p-6">
-        <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Pedidos por estado</h2>
+        <h2 class="section-title mb-4">Pedidos por estado</h2>
         <ul class="flex flex-col gap-3">
           @for (row of statusRows(); track row.label) {
             <li>
               <div class="mb-1 flex items-center justify-between text-[13px] text-text-secondary">
                 <span>{{ row.label }}</span>
-                <span class="mono-figure">{{ row.value }}</span>
+                <span class="mono-figure font-medium text-text-primary">{{ row.value }}</span>
               </div>
-              <div class="h-2 rounded-full bg-bg-base">
-                <div class="h-2 rounded-full bg-brand-magenta" [style.width.%]="row.percent"></div>
+              <div class="h-1.5 overflow-hidden rounded-full bg-bg-base">
+                <div class="h-1.5 rounded-full bg-brand-magenta transition-[width] duration-500" [style.width.%]="row.percent"></div>
               </div>
             </li>
           }
@@ -65,12 +65,12 @@ const STATUS_LABELS: Record<string, string> = {
       </section>
 
       <section class="card-surface p-6">
-        <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Pedidos por canal</h2>
+        <h2 class="section-title mb-4">Pedidos por canal</h2>
         <ul class="flex flex-col gap-3">
           @for (row of channelRows(); track row.label) {
             <li class="flex items-center justify-between text-[14px] text-text-secondary">
               <span>{{ row.label }}</span>
-              <span>{{ row.count }} pedido(s) · <span class="mono-figure">{{ row.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span></span>
+              <span>{{ row.count }} pedido(s) · <span class="mono-figure font-medium text-text-primary">{{ row.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span></span>
             </li>
           }
         </ul>
@@ -80,7 +80,7 @@ const STATUS_LABELS: Record<string, string> = {
     }
 
     <section class="card-surface mt-8 p-6">
-      <h2 class="text-[16px] font-semibold text-text-primary">Lista de preparación</h2>
+      <h2 class="section-title">Lista de preparación</h2>
       <p class="field-hint mb-4">Cuánto hay que alistar para el día de la entrega — solo cuenta pedidos con pago verificado y no cancelados.</p>
       @if (prepList().length === 0) {
         <p class="field-hint">Todavía no hay nada que preparar.</p>
@@ -98,7 +98,7 @@ const STATUS_LABELS: Record<string, string> = {
 
     <section class="card-surface mt-8 flex flex-col gap-4 p-6">
       <div>
-        <h2 class="text-[16px] font-semibold text-text-primary">Explorador completo de pedidos</h2>
+        <h2 class="section-title">Explorador completo de pedidos</h2>
         <p class="field-hint">Todos los campos de todos los pedidos, con filtros — equivalente a la base de datos completa.</p>
       </div>
 
@@ -175,7 +175,7 @@ const STATUS_LABELS: Record<string, string> = {
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
           <table class="w-full min-w-[1520px] border-collapse text-[13px]">
             <thead>
-              <tr class="bg-bg-base text-left text-text-secondary">
+              <tr class="bg-bg-base text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
                 <th class="p-2">Código</th>
                 <th class="p-2">Fecha</th>
                 <th class="p-2">Estado</th>
@@ -197,7 +197,7 @@ const STATUS_LABELS: Record<string, string> = {
             </thead>
             <tbody>
               @for (order of filteredOrders(); track order.id) {
-                <tr class="border-t border-border-soft align-top text-text-primary">
+                <tr class="border-t border-border-soft align-top text-text-primary transition-colors odd:bg-bg-surface-elevated even:bg-bg-base/40 hover:bg-brand-magenta/[0.04]">
                   <td class="mono-figure p-2">{{ order.orderCode }}</td>
                   <td class="p-2 whitespace-nowrap">{{ order.createdAt | date:'short' }}</td>
                   <td class="p-2"><app-order-status-badge [status]="order.status" /></td>
