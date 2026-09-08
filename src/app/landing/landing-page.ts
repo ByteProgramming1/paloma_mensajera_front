@@ -28,6 +28,7 @@ export class LandingPage {
   protected readonly email = signal('');
   protected readonly name = signal('');
   protected readonly password = signal('');
+  protected readonly confirmPassword = signal('');
   protected readonly code = signal('');
   protected readonly resetToken = signal('');
 
@@ -45,7 +46,7 @@ export class LandingPage {
     this.successMessage.set('');
   }
 
-  protected updateField(field: 'email' | 'name' | 'password' | 'code', event: Event): void {
+  protected updateField(field: 'email' | 'name' | 'password' | 'confirmPassword' | 'code', event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this[field].set(value);
   }
@@ -53,6 +54,12 @@ export class LandingPage {
   protected async submitAuth(): Promise<void> {
     this.errorMessage.set('');
     this.successMessage.set('');
+
+    if (this.authMode() === 'reset' && this.password() !== this.confirmPassword()) {
+      this.errorMessage.set('Las contraseñas no coinciden. Escríbelas de nuevo.');
+      return;
+    }
+
     this.isLoading.set(true);
     try {
       if (this.authMode() === 'login') {
@@ -72,6 +79,7 @@ export class LandingPage {
         const response = await this.auth.resetPassword(this.resetToken(), this.password());
         this.successMessage.set(response.message);
         this.password.set('');
+        this.confirmPassword.set('');
         this.authMode.set('login');
       }
     } catch (error: unknown) {

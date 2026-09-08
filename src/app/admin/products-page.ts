@@ -15,45 +15,19 @@ import { Icon } from '../shared/icon';
     <h1 class="page-title mb-1">Catálogo</h1>
     <p class="page-lede mb-8">Administra combos, adicionales, precios, stock e imágenes.</p>
 
-    <section class="card-surface mb-8 p-6">
-      <h2 class="section-title mb-4">Nuevo producto</h2>
-      <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()">
-        <label class="field">
-          <span class="field-label">Nombre</span>
-          <input class="field-input" required [(ngModel)]="draft.name" name="name" />
-        </label>
-        <label class="field">
-          <span class="field-label">Tipo</span>
-          <select class="field-input" [(ngModel)]="draft.type" name="type">
-            <option value="COMBO">Combo</option>
-            <option value="ADICIONAL">Adicional</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field-label">Precio (COP)</span>
-          <input class="field-input" type="number" min="0" required [(ngModel)]="draft.price" name="price" />
-        </label>
-        <label class="field">
-          <span class="field-label">Stock</span>
-          <input class="field-input" type="number" min="0" required [(ngModel)]="draft.stock" name="stock" />
-        </label>
-        <button type="submit" class="btn-primary self-end sm:col-span-2">Agregar al catálogo</button>
-      </form>
-      <p class="field-hint mt-3">La imagen se sube en un segundo paso, desde la tarjeta del producto aquí abajo (el archivo se guarda en almacenamiento de objetos, no en la base de datos).</p>
-      @if (errorMessage()) { <p class="field-error mt-3">{{ errorMessage() }}</p> }
-    </section>
-
-    @if (isLoading()) {
-      <p class="text-text-secondary">Cargando…</p>
-    } @else if (products().length === 0) {
-      <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
-        <app-icon name="gift" [size]="32" [strokeWidth]="1.4" class="text-brand-magenta/40" />
-        <p class="text-[14px] text-text-secondary">Todavía no hay productos en el catálogo. Crea el primero arriba.</p>
-      </div>
-    } @else {
-      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        @for (product of products(); track product.id) {
-          <li class="card-surface flex flex-col gap-3 p-5">
+    <div class="grid gap-8 lg:grid-cols-[1fr_360px]">
+      <div class="order-2 lg:order-1">
+        @if (isLoading()) {
+          <p class="text-text-secondary">Cargando…</p>
+        } @else if (products().length === 0) {
+          <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
+            <app-icon name="gift" [size]="32" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+            <p class="text-[14px] text-text-secondary">Todavía no hay productos en el catálogo. Crea el primero a la derecha.</p>
+          </div>
+        } @else {
+          <ul class="grid gap-4 sm:grid-cols-2">
+            @for (product of products(); track product.id) {
+              <li class="card-surface flex flex-col gap-3 p-5">
             <div class="relative flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
               @if (product.imageUrl) {
                 <img [src]="product.imageUrl" [alt]="product.name" class="size-full object-cover" />
@@ -115,10 +89,42 @@ import { Icon } from '../shared/icon';
                 <p class="field-hint">¿Falta un grupo o quieres agregar opciones nuevas? Gestiónalos desde <a routerLink="/admin/acompanantes" class="text-brand-magenta underline">Acompañantes</a>.</p>
               </div>
             }
-          </li>
+              </li>
+            }
+          </ul>
         }
-      </ul>
-    }
+      </div>
+
+      <aside class="order-1 lg:sticky lg:top-6 lg:order-2 lg:h-fit">
+        <section class="card-surface p-6">
+          <h2 class="section-title mb-4">Nuevo producto</h2>
+          <form class="flex flex-col gap-4" (ngSubmit)="create()">
+            <label class="field">
+              <span class="field-label field-required">Nombre</span>
+              <input class="field-input" required [(ngModel)]="draft.name" name="name" placeholder="Ej. Combo Carta de Otoño" />
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Tipo</span>
+              <select class="field-input" [(ngModel)]="draft.type" name="type">
+                <option value="COMBO">Combo</option>
+                <option value="ADICIONAL">Adicional</option>
+              </select>
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Precio (COP)</span>
+              <input class="field-input" type="number" min="0" required [(ngModel)]="draft.price" name="price" />
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Stock disponible</span>
+              <input class="field-input" type="number" min="0" required [(ngModel)]="draft.stock" name="stock" />
+            </label>
+            <button type="submit" class="btn-primary">Agregar al catálogo</button>
+          </form>
+          <p class="field-hint mt-3">La imagen se sube en un segundo paso, desde la tarjeta del producto a la izquierda (el archivo se guarda en almacenamiento de objetos, no en la base de datos).</p>
+          @if (errorMessage()) { <p class="field-error mt-3">{{ errorMessage() }}</p> }
+        </section>
+      </aside>
+    </div>
   `,
 })
 export class AdminProductsPage {
