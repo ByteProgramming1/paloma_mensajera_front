@@ -13,6 +13,7 @@ import { AdminRaffleDrawPage } from './admin/raffle-draw-page';
 import { AdminUsersPage } from './admin/users-page';
 import { AdminProductsPage } from './admin/products-page';
 import { AdminMetricsPage } from './admin/metrics-page';
+import { AdminAddOnGroupsPage } from './admin/addon-groups-page';
 
 export const routes: Routes = [
   { path: '', component: LandingPage },
@@ -31,6 +32,7 @@ export const routes: Routes = [
       { path: 'admin/sorteo', component: AdminRaffleDrawPage, canActivate: [roleGuard(['admin'])] },
       { path: 'admin/usuarios', component: AdminUsersPage, canActivate: [roleGuard(['admin'])] },
       { path: 'admin/productos', component: AdminProductsPage, canActivate: [roleGuard(['admin'])] },
+      { path: 'admin/acompanantes', component: AdminAddOnGroupsPage, canActivate: [roleGuard(['admin'])] },
       { path: 'admin/metricas', component: AdminMetricsPage, canActivate: [roleGuard(['admin'])] },
     ],
   },

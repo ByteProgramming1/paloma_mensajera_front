@@ -13,8 +13,8 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
   selector: 'app-checkout-page',
   imports: [FormsModule, CurrencyPipe, RouterLink],
   template: `
-    <h1 class="mb-1 text-[28px] font-semibold text-text-primary">Cuéntanos a quién va dirigido</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">
+    <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-text-primary">Cuéntanos a quién va dirigido</h1>
+    <p class="page-lede mb-8">
       Tu dedicatoria pasa por una revisión manual antes de habilitar la rifa — no hay filtros automáticos, la lee una persona del equipo.
     </p>
 
@@ -24,7 +24,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
       <div class="grid gap-10 lg:grid-cols-[1fr_320px]">
         <form class="flex flex-col gap-8" (ngSubmit)="submit()">
           <section class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="text-[16px] font-semibold text-text-primary">Tus datos</h2>
+            <h2 class="section-title">Tus datos</h2>
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="field">
                 <span class="field-label">Nombre completo</span>
@@ -63,7 +63,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
           </section>
 
           <section class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="text-[16px] font-semibold text-text-primary">¿Quién recibe el regalo?</h2>
+            <h2 class="section-title">¿Quién recibe el regalo?</h2>
             <div class="flex gap-2">
               <button type="button" class="btn" [class]="!form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = false">Es para alguien más</button>
               <button type="button" class="btn" [class]="form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = true">Yo mismo lo recojo</button>
@@ -98,20 +98,20 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
           </section>
 
           <section class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="text-[16px] font-semibold text-text-primary">Tu dedicatoria</h2>
+            <h2 class="section-title">Tu dedicatoria</h2>
             <p class="field-hint">Un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
             <label class="field">
               <span class="field-label">Dedicatoria</span>
               <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" required [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje…"></textarea>
             </label>
-            <label class="flex items-center gap-2 text-[14px] text-text-secondary">
-              <input type="checkbox" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
+            <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
+              <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
               Enviar como anónimo (el vendedor no verá tu nombre)
             </label>
           </section>
 
           <section class="card-surface flex flex-col gap-3 p-6">
-            <h2 class="text-[16px] font-semibold text-text-primary">Canal de venta</h2>
+            <h2 class="section-title">Canal de venta</h2>
             <div class="flex gap-2">
               <button type="button" class="btn" [class]="form.salesChannel === 'ONLINE' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'ONLINE'">En línea</button>
               <button type="button" class="btn" [class]="form.salesChannel === 'PRESENCIAL' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'PRESENCIAL'">Presencial en stand</button>
@@ -125,8 +125,8 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
           </button>
         </form>
 
-        <aside class="card-surface h-fit p-6">
-          <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Resumen</h2>
+        <aside class="card-surface sticky top-6 h-fit p-6">
+          <h2 class="section-title mb-4">Resumen</h2>
           <ul class="flex flex-col gap-3">
             @for (line of cart.lines(); track line.product.id) {
               <li class="flex items-center justify-between text-[14px] text-text-secondary">

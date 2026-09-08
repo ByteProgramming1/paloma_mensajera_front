@@ -1,19 +1,22 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { Product, ProductType } from '../core/api.models';
+import { Product, ProductAddOnGroup, ProductType } from '../core/api.models';
 import { ProductsService } from '../core/products.service';
+import { AddOnGroupsService } from '../core/addon-groups.service';
+import { Icon } from '../shared/icon';
 
 @Component({
   selector: 'app-admin-products-page',
-  imports: [FormsModule, CurrencyPipe],
+  imports: [FormsModule, CurrencyPipe, RouterLink, Icon],
   template: `
-    <h1 class="mb-1 text-[26px] font-semibold text-text-primary">Catálogo</h1>
-    <p class="mb-8 max-w-[620px] text-[15px] text-text-secondary">Administra combos, adicionales, precios, stock e imágenes.</p>
+    <h1 class="page-title mb-1">Catálogo</h1>
+    <p class="page-lede mb-8">Administra combos, adicionales, precios, stock e imágenes.</p>
 
     <section class="card-surface mb-8 p-6">
-      <h2 class="mb-4 text-[16px] font-semibold text-text-primary">Nuevo producto</h2>
+      <h2 class="section-title mb-4">Nuevo producto</h2>
       <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="create()">
         <label class="field">
           <span class="field-label">Nombre</span>
@@ -42,16 +45,25 @@ import { ProductsService } from '../core/products.service';
 
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
+    } @else if (products().length === 0) {
+      <div class="card-surface flex flex-col items-center gap-2 p-12 text-center">
+        <app-icon name="gift" [size]="32" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+        <p class="text-[14px] text-text-secondary">Todavía no hay productos en el catálogo. Crea el primero arriba.</p>
+      </div>
     } @else {
       <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @for (product of products(); track product.id) {
           <li class="card-surface flex flex-col gap-3 p-5">
-            <div class="flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
+            <div class="relative flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
               @if (product.imageUrl) {
                 <img [src]="product.imageUrl" [alt]="product.name" class="size-full object-cover" />
               } @else {
-                <span class="text-3xl" aria-hidden="true">🎁</span>
+                <app-icon name="gift" [size]="28" [strokeWidth]="1.4" class="text-brand-magenta/35" />
               }
+              <span
+                class="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                [class]="product.isActive ? 'bg-status-entregado text-text-on-accent' : 'bg-text-secondary text-text-on-accent'"
+              >{{ product.isActive ? 'Activo' : 'Inactivo' }}</span>
             </div>
             <label class="field">
               <span class="field-label">Foto del producto</span>
@@ -74,41 +86,33 @@ import { ProductsService } from '../core/products.service';
                 <input class="field-input" type="number" [ngModel]="product.stock" (ngModelChange)="update(product, { stock: $event })" />
               </label>
             </div>
-            <p class="mono-figure text-[15px] text-brand-magenta">{{ product.price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+            <p class="mono-figure text-[15px] font-semibold text-brand-magenta">{{ product.price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
             <button type="button" class="btn" [class]="product.isActive ? 'btn-secondary' : 'btn-primary'" (click)="update(product, { isActive: !product.isActive })">
               {{ product.isActive ? 'Desactivar' : 'Activar' }}
             </button>
 
             @if (product.type === 'COMBO') {
               <div class="mt-2 flex flex-col gap-3 border-t border-border-soft pt-3">
-                <p class="field-label">Acompañantes (ej. tipos de carta)</p>
+                <p class="field-label">Acompañantes asociados</p>
                 @for (group of product.addOnGroups ?? []; track group.id) {
-                  <div class="rounded-[var(--radius-sm)] bg-bg-base p-3">
-                    <p class="mb-2 text-[13px] font-semibold text-text-primary">{{ group.name }}</p>
-                    <ul class="mb-2 flex flex-wrap gap-2">
-                      @for (option of group.options; track option.id) {
-                        <li class="flex items-center gap-2 rounded-[var(--radius-sm)] bg-bg-surface-elevated px-2 py-1 text-[12px] text-text-secondary">
-                          @if (option.imageUrl) {
-                            <img [src]="option.imageUrl" [alt]="option.name" class="size-6 rounded-full object-cover" />
-                          }
-                          {{ option.name }}
-                          <label class="cursor-pointer text-brand-magenta underline">
-                            Foto
-                            <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" (change)="uploadOptionImage(option.id, $event)" />
-                          </label>
-                        </li>
-                      }
-                    </ul>
-                    <div class="flex gap-2">
-                      <input class="field-input !h-8 max-w-[200px] text-[13px]" [(ngModel)]="newOptionDrafts[group.id]" [name]="'newOption-' + group.id" placeholder="Ej. Carta rosa" />
-                      <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" (click)="addOption(group.id)">Agregar opción</button>
+                  <div class="flex items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-bg-base p-2">
+                    <div>
+                      <p class="text-[13px] font-semibold text-text-primary">{{ group.name }}</p>
+                      <p class="text-[12px] text-text-secondary">{{ group.options.length }} opción(es)</p>
                     </div>
+                    <button type="button" class="text-[12px] text-text-secondary underline" (click)="dissociateGroup(product, group)">Quitar</button>
                   </div>
+                } @empty {
+                  <p class="field-hint">Este combo no tiene acompañantes asociados todavía.</p>
                 }
                 <div class="flex gap-2">
-                  <input class="field-input !h-8 max-w-[220px] text-[13px]" [(ngModel)]="newGroupDrafts[product.id]" [name]="'newGroup-' + product.id" placeholder="Ej. Elige tu carta" />
-                  <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" (click)="addGroup(product)">+ Nuevo grupo</button>
+                  <select class="field-input !h-9 max-w-[220px] text-[13px]" [(ngModel)]="associateDrafts[product.id]" [name]="'associate-' + product.id">
+                    <option value="" disabled>Elige un grupo…</option>
+                    @for (group of unassociatedGroups(product); track group.id) { <option [value]="group.id">{{ group.name }}</option> }
+                  </select>
+                  <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" [disabled]="!associateDrafts[product.id]" (click)="associateGroup(product)">Asociar</button>
                 </div>
+                <p class="field-hint">¿Falta un grupo o quieres agregar opciones nuevas? Gestiónalos desde <a routerLink="/admin/acompanantes" class="text-brand-magenta underline">Acompañantes</a>.</p>
               </div>
             }
           </li>
@@ -119,13 +123,19 @@ import { ProductsService } from '../core/products.service';
 })
 export class AdminProductsPage {
   private readonly productsApi = inject(ProductsService);
+  private readonly addOnGroupsApi = inject(AddOnGroupsService);
 
   protected readonly products = signal<Product[]>([]);
+  protected readonly allGroups = signal<ProductAddOnGroup[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly uploadingId = signal<string | null>(null);
-  protected readonly newGroupDrafts: Record<string, string> = {};
-  protected readonly newOptionDrafts: Record<string, string> = {};
+  protected readonly associateDrafts: Record<string, string> = {};
+
+  protected unassociatedGroups(product: Product) {
+    const associatedIds = new Set((product.addOnGroups ?? []).map((group) => group.id));
+    return this.allGroups().filter((group) => !associatedIds.has(group.id));
+  }
 
   protected draft: { name: string; type: ProductType; price: number; stock: number } = {
     name: '',
@@ -136,6 +146,7 @@ export class AdminProductsPage {
 
   constructor() {
     this.load();
+    this.loadGroups();
   }
 
   private async load(): Promise<void> {
@@ -146,6 +157,14 @@ export class AdminProductsPage {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cargar el catálogo.');
     } finally {
       this.isLoading.set(false);
+    }
+  }
+
+  private async loadGroups(): Promise<void> {
+    try {
+      this.allGroups.set(await firstValueFrom(this.addOnGroupsApi.list()));
+    } catch {
+      // El selector de asociación queda vacío si no hay permiso; el resto de la página sigue funcionando.
     }
   }
 
@@ -181,41 +200,24 @@ export class AdminProductsPage {
     }
   }
 
-  protected async addGroup(product: Product): Promise<void> {
-    const name = this.newGroupDrafts[product.id]?.trim();
-    if (!name) return;
+  protected async associateGroup(product: Product): Promise<void> {
+    const groupId = this.associateDrafts[product.id];
+    if (!groupId) return;
     try {
-      await firstValueFrom(this.productsApi.createAddOnGroup(product.id, name));
-      this.newGroupDrafts[product.id] = '';
+      await firstValueFrom(this.productsApi.associateAddOnGroup(product.id, groupId));
+      this.associateDrafts[product.id] = '';
       await this.load();
     } catch (error) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear el grupo de acompañantes.');
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible asociar el grupo.');
     }
   }
 
-  protected async addOption(groupId: string): Promise<void> {
-    const name = this.newOptionDrafts[groupId]?.trim();
-    if (!name) return;
+  protected async dissociateGroup(product: Product, group: ProductAddOnGroup): Promise<void> {
     try {
-      await firstValueFrom(this.productsApi.createAddOnOption(groupId, name));
-      this.newOptionDrafts[groupId] = '';
+      await firstValueFrom(this.productsApi.dissociateAddOnGroup(product.id, group.id));
       await this.load();
     } catch (error) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear la opción.');
-    }
-  }
-
-  protected async uploadOptionImage(optionId: string, event: Event): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    try {
-      await firstValueFrom(this.productsApi.uploadAddOnOptionImage(optionId, file));
-      await this.load();
-    } catch (error) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible subir la imagen de la opción.');
-    } finally {
-      input.value = '';
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible quitar el grupo.');
     }
   }
 }
