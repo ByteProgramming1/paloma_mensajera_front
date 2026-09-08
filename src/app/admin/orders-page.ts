@@ -8,22 +8,25 @@ import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
+import { Pagination } from '../shared/pagination';
+
+const PAGE_SIZE = 10;
 
 type Tab = 'pagos' | 'todos';
 
 @Component({
   selector: 'app-admin-orders-page',
-  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge, CopyButton],
+  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge, CopyButton, Pagination],
   template: `
     <h1 class="page-title mb-1">Pedidos</h1>
     <p class="page-lede mb-6">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
 
     <div class="mb-6 inline-flex gap-1 rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated p-1">
-      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'pagos' ? 'btn-primary' : 'btn-ghost'" (click)="tab.set('pagos')">
+      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'pagos' ? 'btn-primary' : 'btn-ghost'" (click)="setTab('pagos')">
         Verificar pagos
         @if (pendingCount() > 0) { <span class="ml-1.5 rounded-full bg-status-pendiente px-1.5 py-0.5 text-[11px] font-bold text-text-on-accent">{{ pendingCount() }}</span> }
       </button>
-      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'todos' ? 'btn-primary' : 'btn-ghost'" (click)="tab.set('todos')">Todos los pedidos</button>
+      <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'todos' ? 'btn-primary' : 'btn-ghost'" (click)="setTab('todos')">Todos los pedidos</button>
     </div>
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
@@ -32,8 +35,8 @@ type Tab = 'pagos' | 'todos';
     } @else if (visibleOrders().length === 0) {
       <p class="field-hint">No hay pedidos en esta vista.</p>
     } @else {
-      <ul class="flex flex-col gap-4">
-        @for (order of visibleOrders(); track order.id) {
+      <ul class="mb-4 flex flex-col gap-4">
+        @for (order of pagedOrders(); track order.id) {
           <li class="card-surface flex flex-col gap-3 p-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-semibold text-text-primary">
@@ -78,7 +81,7 @@ type Tab = 'pagos' | 'todos';
                     }
                   </ul>
                 </div>
-                @if (!order.selfPickup) {
+                @if (!order.selfPickup && order.payment?.verified && order.status !== 'DELIVERED') {
                   <div class="sm:col-span-2">
                     <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                   </div>
@@ -96,6 +99,7 @@ type Tab = 'pagos' | 'todos';
           </li>
         }
       </ul>
+      <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
     }
   `,
 })
@@ -107,6 +111,7 @@ export class AdminOrdersPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly notesDrafts: Record<string, string> = {};
+  protected readonly currentPage = signal(1);
 
   protected readonly visibleOrders = computed(() => {
     const all = this.orders();
@@ -116,10 +121,22 @@ export class AdminOrdersPage {
     }
   });
 
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.visibleOrders().length / PAGE_SIZE)));
+  protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
+  protected readonly pagedOrders = computed(() => {
+    const page = this.clampedPage();
+    return this.visibleOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  });
+
   protected readonly pendingCount = computed(() => this.orders().filter((order) => order.status === 'PAYMENT_PENDING').length);
 
   constructor() {
     this.load();
+  }
+
+  protected setTab(tab: Tab): void {
+    this.tab.set(tab);
+    this.currentPage.set(1);
   }
 
   private async load(): Promise<void> {

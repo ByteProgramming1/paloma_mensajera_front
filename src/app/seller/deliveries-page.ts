@@ -8,12 +8,14 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
 import { Icon } from '../shared/icon';
 import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
+import { Pagination } from '../shared/pagination';
 
 const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', 'DELIVERED']);
+const PAGE_SIZE = 10;
 
 @Component({
   selector: 'app-deliveries-page',
-  imports: [FormsModule, ConfirmAction, OrderStatusBadge, Icon, CopyButton],
+  imports: [FormsModule, ConfirmAction, OrderStatusBadge, Icon, CopyButton, Pagination],
   template: `
     <h1 class="page-title mb-1">Entregas</h1>
     <p class="page-lede mb-6">Todas las entregas pendientes le salen a cualquier vendedor — no hay asignación previa, el primero que marca un estado queda como encargado.</p>
@@ -21,7 +23,7 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
     <div class="mb-6 flex flex-wrap items-center gap-4">
       <div class="relative max-w-[320px] flex-1">
         <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
-        <input class="field-input pl-9" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Buscar destinatario por nombre…" />
+        <input class="field-input pl-9" [ngModel]="search()" (ngModelChange)="onSearchChange($event)" placeholder="Buscar destinatario por nombre…" />
       </div>
       <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
         <input type="checkbox" class="accent-brand-magenta size-4" [ngModel]="showAll()" (ngModelChange)="toggleShowAll($event)" />
@@ -38,8 +40,8 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
         <p class="text-[14px] text-text-secondary">No hay pedidos para mostrar con ese criterio.</p>
       </div>
     } @else {
-      <ul class="flex flex-col gap-4">
-        @for (order of filteredOrders(); track order.id) {
+      <ul class="mb-4 flex flex-col gap-4">
+        @for (order of pagedOrders(); track order.id) {
           <li class="card-surface flex flex-col gap-3 p-5" [class.opacity-70]="order.status === 'DELIVERED'">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-semibold text-text-primary">
@@ -86,7 +88,7 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
                 @if (order.status !== 'DELIVERED') {
                   <app-confirm-action label="Marcar entregado" confirmPrompt="¿Confirmas la entrega?" (confirm)="markDelivered(order)" />
                 }
-                @if (!order.selfPickup) {
+                @if (!order.selfPickup && order.status !== 'DELIVERED') {
                   <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                   @if (!order.teamsNotificationSent) {
                     <button type="button" class="btn-ghost" (click)="notify(order)">Notificar automático</button>
@@ -97,6 +99,7 @@ const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', '
           </li>
         }
       </ul>
+      <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
     }
   `,
 })
@@ -116,12 +119,26 @@ export class DeliveriesPage {
     return this.orders().filter((order) => !query || order.recipientFullName.toLowerCase().includes(query));
   });
 
+  protected readonly currentPage = signal(1);
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredOrders().length / PAGE_SIZE)));
+  protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
+  protected readonly pagedOrders = computed(() => {
+    const page = this.clampedPage();
+    return this.filteredOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  });
+
   constructor() {
     this.load();
   }
 
+  protected onSearchChange(value: string): void {
+    this.search.set(value);
+    this.currentPage.set(1);
+  }
+
   protected toggleShowAll(value: boolean): void {
     this.showAll.set(value);
+    this.currentPage.set(1);
     this.load();
   }
 
