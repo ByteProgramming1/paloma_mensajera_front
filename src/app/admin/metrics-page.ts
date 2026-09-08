@@ -7,6 +7,12 @@ import { AdminService } from '../core/admin.service';
 import { OrdersService } from '../core/orders.service';
 import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 import { OrderStatusBadge } from '../shared/order-status-badge';
+import { BarChart, BarChartRow } from '../shared/charts/bar-chart';
+import { LineChart, LineChartPoint } from '../shared/charts/line-chart';
+
+const COP_FORMATTER = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+const formatCop = (value: number): string => COP_FORMATTER.format(value);
+const formatInt = (value: number): string => value.toLocaleString('es-CO');
 
 type TriState = 'ALL' | 'YES' | 'NO';
 
@@ -25,7 +31,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-admin-metrics-page',
-  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge],
+  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, LineChart],
   template: `
     <h1 class="page-title mb-1">Métricas</h1>
     <p class="page-lede mb-8">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
@@ -47,53 +53,27 @@ const STATUS_LABELS: Record<string, string> = {
         </div>
       </div>
 
-      <section class="card-surface mb-8 p-6">
-        <h2 class="section-title mb-4">Pedidos por estado</h2>
-        <ul class="flex flex-col gap-3">
-          @for (row of statusRows(); track row.label) {
-            <li>
-              <div class="mb-1 flex items-center justify-between text-[13px] text-text-secondary">
-                <span>{{ row.label }}</span>
-                <span class="mono-figure font-medium text-text-primary">{{ row.value }}</span>
-              </div>
-              <div class="h-1.5 overflow-hidden rounded-full bg-bg-base">
-                <div class="h-1.5 rounded-full bg-brand-magenta transition-[width] duration-500" [style.width.%]="row.percent"></div>
-              </div>
-            </li>
-          }
-        </ul>
-      </section>
+      <div class="mb-8 grid gap-6 lg:grid-cols-2">
+        <section class="card-surface p-6">
+          <app-bar-chart title="Pedidos por estado" [rows]="statusChartRows()" [formatter]="intFormatter" labelHeader="Estado" valueHeader="Pedidos" />
+        </section>
 
-      <section class="card-surface p-6">
-        <h2 class="section-title mb-4">Pedidos por canal</h2>
-        <ul class="flex flex-col gap-3">
-          @for (row of channelRows(); track row.label) {
-            <li class="flex items-center justify-between text-[14px] text-text-secondary">
-              <span>{{ row.label }}</span>
-              <span>{{ row.count }} pedido(s) · <span class="mono-figure font-medium text-text-primary">{{ row.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span></span>
-            </li>
-          }
-        </ul>
+        <section class="card-surface p-6">
+          <app-bar-chart title="Pedidos por canal" [rows]="channelChartRows()" [formatter]="intFormatter" labelHeader="Canal" valueHeader="Pedidos" />
+          @if (channelRevenueNote(); as note) { <p class="field-hint mt-4">{{ note }}</p> }
+        </section>
+      </div>
+
+      <section class="card-surface mb-8 p-6">
+        <app-line-chart title="Ingresos por día (pago verificado)" [points]="revenueSeries()" [formatter]="copFormatter" />
       </section>
     } @else if (!errorMessage()) {
       <p class="text-text-secondary">Cargando métricas…</p>
     }
 
     <section class="card-surface mt-8 p-6">
-      <h2 class="section-title">Lista de preparación</h2>
-      <p class="field-hint mb-4">Cuánto hay que alistar para el día de la entrega — solo cuenta pedidos con pago verificado y no cancelados.</p>
-      @if (prepList().length === 0) {
-        <p class="field-hint">Todavía no hay nada que preparar.</p>
-      } @else {
-        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          @for (row of prepList(); track row.name) {
-            <li class="flex items-center justify-between rounded-[var(--radius-sm)] bg-bg-base px-3 py-2 text-[14px] text-text-primary">
-              <span>{{ row.name }}</span>
-              <span class="mono-figure font-semibold text-brand-magenta">{{ row.quantity }}</span>
-            </li>
-          }
-        </ul>
-      }
+      <app-bar-chart title="Lista de preparación" [rows]="prepChartRows()" [formatter]="intFormatter" labelHeader="Producto / acompañante" valueHeader="Cantidad" />
+      <p class="field-hint mt-4">Cuánto hay que alistar para el día de la entrega — solo cuenta pedidos con pago verificado y no cancelados.</p>
     </section>
 
     <section class="card-surface mt-8 flex flex-col gap-4 p-6">
@@ -245,7 +225,10 @@ export class AdminMetricsPage {
   protected readonly ordersLoading = signal(true);
   protected readonly ordersError = signal('');
 
-  protected readonly prepList = computed(() => {
+  protected readonly intFormatter = formatInt;
+  protected readonly copFormatter = formatCop;
+
+  protected readonly prepChartRows = computed<BarChartRow[]>(() => {
     const counts = new Map<string, number>();
     for (const order of this.allOrders()) {
       if (order.status === 'CANCELLED' || order.payment?.verified !== true) continue;
@@ -259,8 +242,29 @@ export class AdminMetricsPage {
       }
     }
     return [...counts.entries()]
-      .map(([name, quantity]) => ({ name, quantity }))
-      .sort((a, b) => b.quantity - a.quantity);
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  });
+
+  protected readonly revenueSeries = computed<LineChartPoint[]>(() => {
+    const verified = this.allOrders().filter((order) => order.payment?.verified === true && order.status !== 'CANCELLED');
+    if (verified.length === 0) return [];
+
+    const byDay = new Map<string, number>();
+    for (const order of verified) {
+      const key = new Date(order.createdAt).toISOString().slice(0, 10);
+      byDay.set(key, (byDay.get(key) ?? 0) + order.totalAmount);
+    }
+
+    const days = [...byDay.keys()].sort();
+    const start = new Date(days[0]);
+    const end = new Date(days[days.length - 1]);
+    const points: LineChartPoint[] = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      points.push({ date: new Date(d), value: byDay.get(key) ?? 0 });
+    }
+    return points;
   });
 
   protected readonly search = signal('');
@@ -319,23 +323,25 @@ export class AdminMetricsPage {
     this.dateTo.set('');
   }
 
-  protected readonly statusRows = computed(() => {
+  protected readonly statusChartRows = computed<BarChartRow[]>(() => {
     const byStatus = this.metrics()?.ordersByStatus ?? {};
-    const max = Math.max(1, ...Object.values(byStatus).map((value) => value ?? 0));
-    return Object.entries(byStatus).map(([status, value]) => ({
-      label: STATUS_LABELS[status] ?? status,
-      value: value ?? 0,
-      percent: ((value ?? 0) / max) * 100,
-    }));
+    return Object.entries(byStatus)
+      .map(([status, value]) => ({ label: STATUS_LABELS[status] ?? status, value: value ?? 0 }))
+      .sort((a, b) => b.value - a.value);
   });
 
-  protected readonly channelRows = computed(() => {
+  protected readonly channelChartRows = computed<BarChartRow[]>(() => {
     const byChannel = this.metrics()?.ordersBySalesChannel ?? {};
-    return Object.entries(byChannel).map(([label, metric]) => ({
-      label: label === 'ONLINE' ? 'En línea' : 'Presencial',
-      count: metric?.count ?? 0,
-      totalAmount: metric?.totalAmount ?? 0,
-    }));
+    return Object.entries(byChannel)
+      .map(([label, metric]) => ({ label: label === 'ONLINE' ? 'En línea' : 'Presencial', value: metric?.count ?? 0 }))
+      .sort((a, b) => b.value - a.value);
+  });
+
+  protected readonly channelRevenueNote = computed(() => {
+    const byChannel = this.metrics()?.ordersBySalesChannel ?? {};
+    const parts = Object.entries(byChannel).map(([label, metric]) =>
+      `${label === 'ONLINE' ? 'En línea' : 'Presencial'}: ${formatCop(metric?.totalAmount ?? 0)}`);
+    return parts.length > 0 ? `Ingresos por canal — ${parts.join(' · ')}` : null;
   });
 
   constructor() {
