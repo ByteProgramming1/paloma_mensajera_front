@@ -92,10 +92,10 @@ export class TopNav {
         { path: '/vendedor/entregas', label: 'Entregas' },
       ];
     }
-    const links: NavLink[] = [{ path: '/catalogo', label: 'Catálogo' }];
-    const lastOrderId = this.lastOrderId();
-    if (lastOrderId) links.push({ path: `/pedidos/${lastOrderId}`, label: 'Mi pedido' });
-    return links;
+    return [
+      { path: '/catalogo', label: 'Catálogo' },
+      { path: '/mis-pedidos', label: 'Mis pedidos' },
+    ];
   }
 
   protected roleLabel(): string {
@@ -106,10 +106,6 @@ export class TopNav {
   protected homePath(): string {
     const role = this.auth.session()?.roleSlug as UserRole | undefined;
     return role === 'admin' ? '/admin/pedidos' : role === 'seller' ? '/vendedor/mensajes' : '/catalogo';
-  }
-
-  private lastOrderId(): string | null {
-    try { return localStorage.getItem('paloma_last_order_id'); } catch { return null; }
   }
 
   protected logout(): void {

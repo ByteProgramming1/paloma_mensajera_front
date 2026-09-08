@@ -4,6 +4,7 @@ import { AppShell } from './shared/app-shell';
 import { LandingPage } from './landing/landing-page';
 import { CatalogPage } from './buyer/catalog-page';
 import { CheckoutPage } from './buyer/checkout-page';
+import { MyOrdersPage } from './buyer/my-orders-page';
 import { OrderStatusPage } from './buyer/order-status-page';
 import { RafflePage } from './buyer/raffle-page';
 import { MessagesQueuePage } from './seller/messages-queue-page';
@@ -24,6 +25,7 @@ export const routes: Routes = [
     children: [
       { path: 'catalogo', component: CatalogPage },
       { path: 'comprar', component: CheckoutPage },
+      { path: 'mis-pedidos', component: MyOrdersPage },
       { path: 'pedidos/:id', component: OrderStatusPage },
       { path: 'pedidos/:id/rifa', component: RafflePage },
       { path: 'vendedor/mensajes', component: MessagesQueuePage, canActivate: [roleGuard(['seller', 'admin'])] },
