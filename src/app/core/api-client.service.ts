@@ -2,11 +2,16 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
 
-interface RuntimeConfig { apiUrl?: string; }
+interface RuntimeConfig { apiUrl?: string; nequiPhone?: string; }
 
 @Injectable({ providedIn: 'root' })
 export class ApiClientService {
   private readonly http = inject(HttpClient);
+
+  /** Número de Nequi al que se transfiere el pago — configurable vía PALOMA_NEQUI_PHONE (ver scripts/inject-runtime-config.mjs), no quemado en el código. */
+  get nequiPhone(): string {
+    return this.config()?.nequiPhone ?? '300 000 0000';
+  }
 
   get<T>(path: string, params?: object): Observable<T> {
     return this.http.get<T>(this.url(path), { params: this.params(params) }).pipe(catchError(this.handleError));
@@ -30,11 +35,14 @@ export class ApiClientService {
     return this.http.post<T>(this.url(path), formData).pipe(catchError(this.handleError));
   }
 
-  private url(path: string): string {
-    const config = typeof window !== 'undefined'
+  private config(): RuntimeConfig | undefined {
+    return typeof window !== 'undefined'
       ? (window as Window & { PALOMA_CONFIG?: RuntimeConfig }).PALOMA_CONFIG
       : undefined;
-    return `${config?.apiUrl ?? 'http://localhost:3000'}${path}`;
+  }
+
+  private url(path: string): string {
+    return `${this.config()?.apiUrl ?? 'http://localhost:3000'}${path}`;
   }
 
   private params(values?: object): HttpParams {
