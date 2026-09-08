@@ -9,7 +9,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { BarChart, BarChartRow } from '../shared/charts/bar-chart';
 import { LineChart, LineChartPoint } from '../shared/charts/line-chart';
-import { Icon } from '../shared/icon';
+import { Pagination } from '../shared/pagination';
 
 const PAGE_SIZE = 25;
 
@@ -34,7 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-admin-metrics-page',
-  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, LineChart, Icon],
+  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, LineChart, Pagination],
   template: `
     <h1 class="page-title mb-1">Métricas</h1>
     <p class="page-lede mb-8">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
@@ -156,17 +156,7 @@ const STATUS_LABELS: Record<string, string> = {
       } @else {
         <div class="flex flex-wrap items-center justify-between gap-3">
           <p class="field-hint">{{ filteredOrders().length }} de {{ allOrders().length }} pedido(s)</p>
-          @if (totalPages() > 1) {
-            <div class="flex items-center gap-2">
-              <button type="button" class="btn-ghost !px-2.5 !py-1" [disabled]="currentPage() <= 1" (click)="currentPage.set(currentPage() - 1)" aria-label="Página anterior">
-                <app-icon name="chevron-left" [size]="16" />
-              </button>
-              <span class="text-[13px] text-text-secondary">Página <span class="font-semibold text-text-primary">{{ currentPage() }}</span> de {{ totalPages() }}</span>
-              <button type="button" class="btn-ghost !px-2.5 !py-1" [disabled]="currentPage() >= totalPages()" (click)="currentPage.set(currentPage() + 1)" aria-label="Página siguiente">
-                <app-icon name="chevron-right" [size]="16" />
-              </button>
-            </div>
-          }
+          <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
         </div>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
           <table class="w-full min-w-[1520px] border-collapse text-[13px]">
@@ -220,17 +210,7 @@ const STATUS_LABELS: Record<string, string> = {
             </tbody>
           </table>
         </div>
-        @if (totalPages() > 1) {
-          <div class="flex items-center justify-center gap-2">
-            <button type="button" class="btn-ghost !px-2.5 !py-1" [disabled]="currentPage() <= 1" (click)="currentPage.set(currentPage() - 1)" aria-label="Página anterior">
-              <app-icon name="chevron-left" [size]="16" />
-            </button>
-            <span class="text-[13px] text-text-secondary">Página <span class="font-semibold text-text-primary">{{ currentPage() }}</span> de {{ totalPages() }}</span>
-            <button type="button" class="btn-ghost !px-2.5 !py-1" [disabled]="currentPage() >= totalPages()" (click)="currentPage.set(currentPage() + 1)" aria-label="Página siguiente">
-              <app-icon name="chevron-right" [size]="16" />
-            </button>
-          </div>
-        }
+        <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
       }
     </section>
   `,
@@ -340,8 +320,9 @@ export class AdminMetricsPage {
 
   protected readonly currentPage = signal(1);
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredOrders().length / PAGE_SIZE)));
+  protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
   protected readonly pagedOrders = computed(() => {
-    const page = Math.min(this.currentPage(), this.totalPages());
+    const page = this.clampedPage();
     return this.filteredOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
 
