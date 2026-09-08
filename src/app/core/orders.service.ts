@@ -8,6 +8,7 @@ export class OrdersService {
 
   createPublic(payload: CreateOrderRequest) { return this.api.post<Order>('/orders/public', payload); }
   getById(id: string) { return this.api.get<Order>(`/orders/${id}`); }
+  mine() { return this.api.get<Order[]>('/orders/mine'); }
   myDeliveries(includeDelivered = false) {
     return this.api.get<Order[]>('/orders/my-deliveries', includeDelivered ? { includeDelivered: 'true' } : undefined);
   }

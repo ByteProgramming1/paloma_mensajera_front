@@ -217,7 +217,6 @@ export class CheckoutPage implements OnInit {
       };
       const order = await firstValueFrom(this.ordersApi.createPublic(payload));
       this.cart.clear();
-      try { localStorage.setItem('paloma_last_order_id', order.id); } catch { /* almacenamiento no disponible */ }
       this.router.navigateByUrl(`/pedidos/${order.id}`);
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible enviar tu pedido.');
