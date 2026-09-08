@@ -11,6 +11,8 @@ import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
 
 const PAGE_SIZE = 10;
+// Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
+const TEAMS_COPY_ENABLED = false;
 
 type Tab = 'pagos' | 'todos';
 
@@ -81,7 +83,7 @@ type Tab = 'pagos' | 'todos';
                     }
                   </ul>
                 </div>
-                @if (!order.selfPickup && order.payment?.verified && order.status !== 'DELIVERED') {
+                @if (teamsCopyEnabled && !order.selfPickup && order.payment?.verified && order.status !== 'DELIVERED') {
                   <div class="sm:col-span-2">
                     <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                   </div>
@@ -105,6 +107,7 @@ type Tab = 'pagos' | 'todos';
 })
 export class AdminOrdersPage {
   private readonly ordersApi = inject(OrdersService);
+  protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
 
   protected readonly tab = signal<Tab>('pagos');
   protected readonly orders = signal<Order[]>([]);

@@ -12,6 +12,8 @@ import { Pagination } from '../shared/pagination';
 
 const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', 'DELIVERED']);
 const PAGE_SIZE = 10;
+// Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
+const TEAMS_COPY_ENABLED = false;
 
 @Component({
   selector: 'app-deliveries-page',
@@ -89,7 +91,9 @@ const PAGE_SIZE = 10;
                   <app-confirm-action label="Marcar entregado" confirmPrompt="¿Confirmas la entrega?" (confirm)="markDelivered(order)" />
                 }
                 @if (!order.selfPickup && order.status !== 'DELIVERED') {
-                  <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
+                  @if (teamsCopyEnabled) {
+                    <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
+                  }
                   @if (!order.teamsNotificationSent) {
                     <button type="button" class="btn-ghost" (click)="notify(order)">Notificar automático</button>
                   }
@@ -106,6 +110,7 @@ const PAGE_SIZE = 10;
 export class DeliveriesPage {
   private readonly ordersApi = inject(OrdersService);
   protected readonly DELIVERABLE_SET = DELIVERABLE;
+  protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
 
   protected readonly search = signal('');
   protected readonly showAll = signal(false);

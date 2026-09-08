@@ -4,8 +4,6 @@
     <span><strong>Paloma Mensajera</strong><small>Detalles que llegan</small></span>
   </a>
   <nav aria-label="Navegación principal">
-    <a href="#como-funciona">Cómo funciona</a>
-    <a href="#beneficios">Beneficios</a>
     <a class="nav-cta" href="#acceso">Ingresar</a>
   </nav>
 </header>
@@ -17,7 +15,6 @@
       <p class="hero-description">Regalos, cartas y sorpresas entregados directamente en la universidad. Comparte una emoción, incluso cuando no puedes decirla en persona.</p>
       <div class="hero-actions">
         <a class="primary-action" href="#acceso">Quiero enviar un detalle <span aria-hidden="true">→</span></a>
-        <a class="text-action" href="#como-funciona">Conoce la experiencia <span aria-hidden="true">↓</span></a>
       </div>
       <div class="hero-note"><span class="note-dot" aria-hidden="true"></span> Entregas cuidadas y 100% confidenciales</div>
     </div>
@@ -33,41 +30,6 @@
     <div><strong>01</strong><span>Elige un detalle<br />con intención</span></div>
     <div><strong>02</strong><span>Personaliza tu<br />mensaje</span></div>
     <div><strong>03</strong><span>Nosotros lo llevamos<br />por ti</span></div>
-  </section>
-
-  <section class="feature-section" id="beneficios" aria-labelledby="benefits-title">
-    <div class="section-heading">
-      <h2 id="benefits-title">Una forma más bonita<br />de estar presente.</h2>
-    </div>
-    <div class="feature-grid">
-      <article class="feature-item">
-        <h3>Detalles para cada ocasión</h3>
-        <p>Combos, cartas, dulces y rosas pensados para celebrar, acompañar o simplemente alegrar el día.</p>
-      </article>
-      <article class="feature-item feature-item--highlight">
-        <h3>Tu mensaje, tu manera</h3>
-        <p>Envía tu dedicatoria con tu nombre o de forma anónima. Tú decides cómo quieres aparecer.</p>
-      </article>
-      <article class="feature-item">
-        <h3>Entregas que sí llegan</h3>
-        <p>Coordinamos cada entrega dentro de la universidad para que tu detalle llegue en el momento correcto.</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="process-section" id="como-funciona" aria-labelledby="process-title">
-    <div class="process-visual">
-      <img src="assets/logos/escuelaing.png" alt="Escuela Colombiana de Ingeniería" />
-      <span>Dentro del campus,<br /><strong>más cerca de quien importa.</strong></span>
-    </div>
-    <div class="process-copy">
-      <h2 id="process-title">Tu detalle en<br /><em>tres pasos.</em></h2>
-      <ol class="process-list">
-        <li><strong>Escoge</strong><span>Encuentra el detalle perfecto en nuestro catálogo.</span></li>
-        <li><strong>Dedica</strong><span>Escribe un mensaje que haga sonreír.</span></li>
-        <li><strong>Envía</strong><span>Nos encargamos de llevarlo hasta su destinatario.</span></li>
-      </ol>
-    </div>
   </section>
 
   <section class="access-section" id="acceso" aria-labelledby="access-title">
@@ -101,6 +63,8 @@
         <p class="login-caption">Elige una contraseña de al menos 8 caracteres.</p>
         <label class="field-label" for="new-password">Nueva contraseña</label>
         <input id="new-password" class="auth-input" type="password" autocomplete="new-password" [value]="password()" (input)="updateField('password', $event)" placeholder="Tu nueva contraseña" />
+        <label class="field-label" for="confirm-password">Repite la contraseña</label>
+        <input id="confirm-password" class="auth-input" type="password" autocomplete="new-password" [value]="confirmPassword()" (input)="updateField('confirmPassword', $event)" placeholder="Escríbela de nuevo" />
         <button type="submit" class="auth-button" [disabled]="isLoading()">
           {{ isLoading() ? 'Actualizando...' : 'Cambiar contraseña' }}
         </button>

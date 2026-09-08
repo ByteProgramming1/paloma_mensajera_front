@@ -28,11 +28,14 @@
 
 .partner-copy,
 .partner-copy small,
-.partner-copy strong {
+.partner-copy strong,
+.footer-name,
+.footer-name strong,
+.footer-name small {
   display: block;
 }
 
-.footer-name {
+.footer-name strong {
   font-weight: 700;
 }
 

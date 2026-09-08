@@ -13,80 +13,85 @@ import { Icon } from '../shared/icon';
     <h1 class="page-title mb-1">Roles y turnos</h1>
     <p class="page-lede mb-8">Reasigna o desactiva a cualquier persona por su correo para acomodar la rotación de turnos, sin crear cuentas nuevas.</p>
 
-    <section class="card-surface mb-8 p-6">
-      <h2 class="section-title mb-4">Crear cuenta temporal de staff</h2>
-      <form class="grid gap-4 sm:grid-cols-2" (ngSubmit)="createTemporary()">
-        <label class="field">
-          <span class="field-label">Nombre</span>
-          <input class="field-input" required [(ngModel)]="temp.name" name="name" />
+    <div class="grid gap-8 lg:grid-cols-[1fr_340px]">
+      <div class="order-2 lg:order-1">
+        <label class="field mb-4 max-w-[320px]">
+          <span class="field-label">Buscar por nombre o correo</span>
+          <div class="relative">
+            <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+            <input class="field-input pl-9" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" name="nameFilter" placeholder="Ej. Astrih González" />
+          </div>
         </label>
-        <label class="field">
-          <span class="field-label">Correo institucional</span>
-          <input class="field-input" type="email" required [(ngModel)]="temp.email" name="email" />
-        </label>
-        <label class="field">
-          <span class="field-label">Rol</span>
-          <select class="field-input" [(ngModel)]="temp.roleSlug" name="roleSlug">
-            <option value="seller">Vendedor</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="field-label">Vence el</span>
-          <input class="field-input" type="datetime-local" required [(ngModel)]="temp.expiresAt" name="expiresAt" />
-        </label>
-        <button type="submit" class="btn-primary self-end sm:col-span-2">Crear cuenta</button>
-      </form>
-      @if (tempMessage()) { <p class="field-hint mt-3">{{ tempMessage() }}</p> }
-    </section>
 
-    <label class="field mb-4 max-w-[320px]">
-      <span class="field-label">Buscar por nombre o correo</span>
-      <div class="relative">
-        <app-icon name="search" [size]="16" class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
-        <input class="field-input pl-9" [ngModel]="nameFilter()" (ngModelChange)="nameFilter.set($event)" name="nameFilter" placeholder="Ej. Astrih González" />
+        @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
+        @if (isLoading()) {
+          <p class="text-text-secondary">Cargando…</p>
+        } @else if (filteredUsers().length === 0) {
+          <p class="field-hint">No se encontró nadie con ese nombre o correo.</p>
+        } @else {
+          <ul class="flex flex-col gap-3">
+            @for (user of filteredUsers(); track user.id) {
+              <li class="card-surface flex flex-wrap items-center justify-between gap-4 p-4">
+                <div class="flex items-center gap-3">
+                  <span
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-text-on-accent"
+                    [class]="user.isActive ? 'bg-brand-magenta' : 'bg-text-secondary'"
+                  >{{ initialsOf(user.fullName) }}</span>
+                  <div>
+                    <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
+                    <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · cuenta vence ' + (user.expiresAt | date:'short') : '' }}{{ user.roleExpiresAt ? ' · rol vence ' + (user.roleExpiresAt | date:'short') : '' }}</p>
+                  </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                  <select class="field-input !h-9 max-w-[160px]" [ngModel]="pendingRole(user)?.role ?? user.role" (ngModelChange)="prepareReassign(user, $event)">
+                    <option value="comprador">Comprador</option>
+                    <option value="seller">Vendedor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                  @if (pendingRole(user); as pending) {
+                    <input class="field-input !h-9" type="datetime-local" [min]="minRoleDateTime" [(ngModel)]="pending.expiresAt" />
+                    <button type="button" class="btn-primary" (click)="confirmReassign(user)">Confirmar</button>
+                    <button type="button" class="btn-ghost" (click)="cancelReassign(user)">Cancelar</button>
+                  }
+                  <button type="button" class="btn" [class]="user.isActive ? 'btn-secondary' : 'btn-primary'" (click)="toggle(user)">
+                    {{ user.isActive ? 'Desactivar' : 'Activar' }}
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
       </div>
-    </label>
 
-    @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
-    @if (isLoading()) {
-      <p class="text-text-secondary">Cargando…</p>
-    } @else {
-      @if (filteredUsers().length === 0) {
-        <p class="field-hint">No se encontró nadie con ese nombre o correo.</p>
-      }
-      <ul class="flex flex-col gap-3">
-        @for (user of filteredUsers(); track user.id) {
-          <li class="card-surface flex flex-wrap items-center justify-between gap-4 p-4">
-            <div class="flex items-center gap-3">
-              <span
-                class="flex size-10 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-text-on-accent"
-                [class]="user.isActive ? 'bg-brand-magenta' : 'bg-text-secondary'"
-              >{{ initialsOf(user.fullName) }}</span>
-              <div>
-                <p class="font-semibold text-text-primary">{{ user.fullName }}</p>
-                <p class="field-hint">{{ user.email }}{{ user.expiresAt ? ' · cuenta vence ' + (user.expiresAt | date:'short') : '' }}{{ user.roleExpiresAt ? ' · rol vence ' + (user.roleExpiresAt | date:'short') : '' }}</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <select class="field-input !h-9 max-w-[160px]" [ngModel]="pendingRole(user)?.role ?? user.role" (ngModelChange)="prepareReassign(user, $event)">
-                <option value="comprador">Comprador</option>
+      <aside class="order-1 lg:sticky lg:top-6 lg:order-2 lg:h-fit">
+        <section class="card-surface p-6">
+          <h2 class="section-title mb-4">Crear cuenta temporal de staff</h2>
+          <form class="flex flex-col gap-4" (ngSubmit)="createTemporary()">
+            <label class="field">
+              <span class="field-label field-required">Nombre</span>
+              <input class="field-input" required [(ngModel)]="temp.name" name="name" />
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Correo institucional</span>
+              <input class="field-input" type="email" required [(ngModel)]="temp.email" name="email" />
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Rol</span>
+              <select class="field-input" [(ngModel)]="temp.roleSlug" name="roleSlug">
                 <option value="seller">Vendedor</option>
                 <option value="admin">Administrador</option>
               </select>
-              @if (pendingRole(user); as pending) {
-                <input class="field-input !h-9" type="datetime-local" [min]="minRoleDateTime" [(ngModel)]="pending.expiresAt" />
-                <button type="button" class="btn-primary" (click)="confirmReassign(user)">Confirmar</button>
-                <button type="button" class="btn-ghost" (click)="cancelReassign(user)">Cancelar</button>
-              }
-              <button type="button" class="btn" [class]="user.isActive ? 'btn-secondary' : 'btn-primary'" (click)="toggle(user)">
-                {{ user.isActive ? 'Desactivar' : 'Activar' }}
-              </button>
-            </div>
-          </li>
-        }
-      </ul>
-    }
+            </label>
+            <label class="field">
+              <span class="field-label field-required">Vence el</span>
+              <input class="field-input" type="datetime-local" required [(ngModel)]="temp.expiresAt" name="expiresAt" />
+            </label>
+            <button type="submit" class="btn-primary">Crear cuenta</button>
+          </form>
+          @if (tempMessage()) { <p class="field-hint mt-3">{{ tempMessage() }}</p> }
+        </section>
+      </aside>
+    </div>
   `,
 })
 export class AdminUsersPage {

@@ -78,6 +78,55 @@ function friendlyMessageFor(error: HttpErrorResponse): string {
   if (generic) return generic;
 
   const payload = error.error as { message?: string | string[] } | null;
-  if (Array.isArray(payload?.message)) return payload.message.join(', ');
-  return payload?.message ?? error.message ?? 'No fue posible completar la solicitud.';
+  if (Array.isArray(payload?.message)) return payload.message.map(translateValidationMessage).join(' ');
+  const message = payload?.message ?? error.message;
+  return message ? translateValidationMessage(message) : 'No fue posible completar la solicitud.';
+}
+
+// Nombres de campo en español para los mensajes de validación crudos (class-validator los genera en
+// inglés usando el nombre de la propiedad del DTO tal cual). Cubre los formularios reales de la app
+// (login, registro, verificación, checkout); un campo no listado cae al nombre entre comillas.
+const FIELD_NAMES_ES: Record<string, string> = {
+  email: 'El correo',
+  password: 'La contraseña',
+  name: 'El nombre',
+  fullName: 'El nombre completo',
+  buyerFullName: 'El nombre',
+  buyerEmail: 'El correo',
+  buyerPhone: 'El teléfono',
+  code: 'El código',
+  token: 'El enlace',
+  phone: 'El teléfono',
+  recipientFullName: 'El nombre del destinatario',
+  recipientTeamsUser: 'El usuario de Teams del destinatario',
+  letterContent: 'La dedicatoria',
+};
+
+function fieldNameEs(property: string): string {
+  return FIELD_NAMES_ES[property] ?? `El campo "${property}"`;
+}
+
+// Traduce los mensajes en inglés que class-validator genera automáticamente a partir de los
+// decoradores del DTO (ej. "password must be longer than or equal to 1 characters"). Es una red de
+// seguridad en el frontend — lo correcto es que el backend defina sus propios mensajes en español,
+// pero mientras eso no cubra el 100% de los DTOs, esto evita que el inglés crudo le llegue al usuario.
+// Un mensaje que no calza con ningún patrón conocido se muestra tal cual (mejor un mensaje en inglés
+// puntual que uno inventado que no corresponda al error real).
+const VALIDATION_PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
+  [/^(\w+) should not be empty$/i, (m) => `${fieldNameEs(m[1])} es obligatorio.`],
+  [/^(\w+) must be longer than or equal to (\d+) characters?$/i, (m) => `${fieldNameEs(m[1])} debe tener al menos ${m[2]} caracteres.`],
+  [/^(\w+) must be shorter than or equal to (\d+) characters?$/i, (m) => `${fieldNameEs(m[1])} debe tener como máximo ${m[2]} caracteres.`],
+  [/^(\w+) must be an email$/i, (m) => `${fieldNameEs(m[1])} no es un correo válido.`],
+  [/^(\w+) must be a valid (?:ISO 8601 )?date(?: string)?$/i, (m) => `${fieldNameEs(m[1])} no es una fecha válida.`],
+  [/^(\w+) must be a number(?: conforming to the specified constraints)?$/i, (m) => `${fieldNameEs(m[1])} debe ser un número.`],
+  [/^(\w+) must not be less than (\d+)$/i, (m) => `${fieldNameEs(m[1])} no puede ser menor que ${m[2]}.`],
+  [/^(\w+) must be one of the following values: (.+)$/i, (m) => `${fieldNameEs(m[1])} debe ser uno de estos valores: ${m[2]}.`],
+];
+
+function translateValidationMessage(message: string): string {
+  for (const [pattern, translate] of VALIDATION_PATTERNS) {
+    const match = message.match(pattern);
+    if (match) return translate(match);
+  }
+  return message;
 }
