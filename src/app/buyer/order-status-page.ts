@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Order } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
+import { ApiClientService } from '../core/api-client.service';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 
 @Component({
@@ -36,7 +37,7 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
             </div>
             <div class="card-surface p-5">
               <p class="section-title mb-2">Paga por Nequi</p>
-              <p class="text-[14px] leading-relaxed text-text-secondary">Transfiere <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span> por Nequi. No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.</p>
+              <p class="text-[14px] leading-relaxed text-text-secondary">Transfiere <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span> al número <span class="mono-figure font-semibold text-text-primary">{{ nequiPhone }}</span> por Nequi. No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.</p>
             </div>
           }
           @case (order.status === 'PAYMENT_REJECTED') {
@@ -67,9 +68,11 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
 export class OrderStatusPage {
   private readonly route = inject(ActivatedRoute);
   private readonly ordersApi = inject(OrdersService);
+  private readonly apiClient = inject(ApiClientService);
 
   protected readonly order = signal<Order | null>(null);
   protected readonly errorMessage = signal('');
+  protected readonly nequiPhone = this.apiClient.nequiPhone;
 
   constructor() {
     // Siempre se recarga desde la API (en vez de confiar en el estado de navegación) para
