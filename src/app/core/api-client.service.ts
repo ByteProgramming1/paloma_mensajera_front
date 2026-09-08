@@ -53,10 +53,31 @@ export class ApiClientService {
   }
 
   private handleError(error: HttpErrorResponse) {
-    const payload = error.error as { message?: string | string[] } | null;
-    const message = Array.isArray(payload?.message)
-      ? payload.message.join(', ')
-      : payload?.message ?? error.message ?? 'No fue posible completar la solicitud.';
-    return throwError(() => new Error(message));
+    return throwError(() => new Error(friendlyMessageFor(error)));
   }
+}
+
+// Códigos que reciben un mensaje genérico y amable en vez del mensaje crudo del backend.
+// 5xx y errores de red pueden traer detalles técnicos internos (ej. una excepción sin capturar
+// del proveedor de correo) que no le sirven al usuario y no deberían mostrarse tal cual.
+// 4xx (400/401 con mensaje de negocio/404/409/422, etc.) sí trae mensajes pensados para mostrarse.
+const GENERIC_MESSAGE_BY_STATUS: Record<number, string> = {
+  0: 'No hay conexión con el servidor. Verifica tu internet e intenta de nuevo.',
+  401: 'Tu sesión expiró o no iniciaste sesión. Inicia sesión de nuevo.',
+  403: 'No tienes permiso para hacer esto.',
+  404: 'No se encontró lo que buscabas.',
+  408: 'La solicitud tardó demasiado en responder. Intenta de nuevo.',
+  429: 'Demasiados intentos. Espera un momento e intenta de nuevo.',
+};
+
+function friendlyMessageFor(error: HttpErrorResponse): string {
+  if (error.status >= 500) {
+    return 'Ocurrió un error en el servidor. Intenta de nuevo en unos minutos; si sigue pasando, avisa al equipo.';
+  }
+  const generic = GENERIC_MESSAGE_BY_STATUS[error.status];
+  if (generic) return generic;
+
+  const payload = error.error as { message?: string | string[] } | null;
+  if (Array.isArray(payload?.message)) return payload.message.join(', ');
+  return payload?.message ?? error.message ?? 'No fue posible completar la solicitud.';
 }

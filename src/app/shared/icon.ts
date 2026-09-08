@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 
-export type IconName = 'gift' | 'envelope' | 'lock' | 'close' | 'menu' | 'search' | 'check' | 'chevron-down';
+export type IconName = 'gift' | 'envelope' | 'lock' | 'close' | 'menu' | 'search' | 'check' | 'chevron-down' | 'alert' | 'copy' | 'chevron-left' | 'chevron-right';
 
 const PATHS: Record<IconName, string> = {
   gift: 'M20 12v10H4V12M2 7h20v5H2V7ZM12 22V7M12 7C9.5 7 8 5.5 8 3.5S9.5 1 11 1s1 2 1 3M12 7c2.5 0 4-1.5 4-3.5S14.5 1 13 1s-1 2-1 3',
@@ -11,6 +11,10 @@ const PATHS: Record<IconName, string> = {
   search: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35',
   check: 'M4 12l5 5 11-11',
   'chevron-down': 'm6 9 6 6 6-6',
+  'chevron-left': 'm15 18-6-6 6-6',
+  'chevron-right': 'm9 18 6-6-6-6',
+  alert: 'M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0ZM12 9v4M12 17h.01',
+  copy: 'M9 9h10v10H9zM5 15V5h10',
 };
 
 @Component({
