@@ -23,6 +23,15 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+// GET /auth/me — re-consulta rol/permisos vigentes en la BD (JwtStrategy.validate en el
+// backend), sin devolver accessToken: solo sirve para refrescar la sesión cacheada, el token
+// vigente sigue siendo el mismo.
+export interface MeResponse {
+  user: AuthUser;
+  roleSlug: UserRole;
+  permissions: string[];
+}
+
 export interface RegisterResponse {
   message: string;
   email: string;
