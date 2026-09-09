@@ -37,12 +37,8 @@ h1 em, h2 em { color: #dc3899; font-style: normal; }
 .hero-note { display: flex; align-items: center; gap: 8px; margin-top: 40px; color: #998a96; font-size: 10px; }
 .note-dot { width: 7px; height: 7px; border-radius: 50%; background: #e747a4; }
 .hero-art { position: relative; display: grid; place-items: center; align-self: center; min-height: 430px; }
-.art-glow { position: absolute; width: min(33vw, 400px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(239, 76, 175, .32), rgba(239, 76, 175, 0) 68%); }
-.hero-bird { position: relative; z-index: 1; width: min(28vw, 360px); max-height: 330px; object-fit: contain; filter: drop-shadow(0 24px 20px rgba(128, 27, 95, .16)); }
-.floating-note { position: absolute; z-index: 2; padding: 12px 15px; border: 1px solid rgba(149, 19, 102, .12); border-radius: 3px; color: var(--ink-deep); background: rgba(255, 255, 255, .84); font-size: 11px; box-shadow: 0 12px 30px rgba(128, 27, 95, .1); }
-.floating-note--top { top: 10%; right: 2%; }
-.floating-note--bottom { bottom: 12%; left: 3%; }
-.floating-note span { color: #e23b9d; font-size: 17px; }
+.art-glow { position: absolute; width: min(38vw, 460px); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(239, 76, 175, .32), rgba(239, 76, 175, 0) 68%); }
+.hero-bird { position: relative; z-index: 1; width: min(33vw, 420px); max-height: 390px; object-fit: contain; filter: drop-shadow(0 24px 20px rgba(128, 27, 95, .16)); }
 .trust-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; padding: 22px clamp(24px, 10vw, 150px); color: white; background: var(--ink); }
 .trust-strip div { display: flex; align-items: center; gap: 15px; padding: 8px clamp(8px, 3vw, 40px); border-right: 1px solid rgba(255, 255, 255, .24); }
 .trust-strip div:last-child { border-right: 0; }
@@ -122,10 +118,8 @@ h2 { color: var(--ink-deep); font-size: clamp(2.2rem, 4vw, 4.3rem); line-height:
   .hero-section { min-height: auto; padding: 70px 8% 60px; }
   h1 { font-size: clamp(3rem, 12vw, 5.2rem); }
   .hero-art { min-height: 330px; }
-  .hero-bird { width: min(64vw, 300px); }
-  .art-glow { width: 75vw; }
-  .floating-note--top { right: 3%; }
-  .floating-note--bottom { left: 3%; }
+  .hero-bird { width: min(70vw, 340px); }
+  .art-glow { width: 80vw; }
   .trust-strip { padding: 16px 8%; }
   .trust-strip div { padding: 8px 10px; }
   .trust-strip span { font-size: 10px; }

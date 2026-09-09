@@ -5,10 +5,11 @@ import { firstValueFrom } from 'rxjs';
 import { Order, RaffleDrawHistoryEntry, RaffleDrawResult, RaffleNumber } from '../core/api.models';
 import { RaffleService } from '../core/raffle.service';
 import { OrdersService } from '../core/orders.service';
+import { ConfirmAction } from '../shared/confirm-action';
 
 @Component({
   selector: 'app-admin-raffle-draw-page',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, ConfirmAction],
   template: `
     <h1 class="page-title mb-1">Sorteo de la rifa</h1>
     <p class="page-lede mb-8">Solo los números con pago verificado entran al sorteo. Puedes repetir la ronda tantas veces como premios tengas — cada ronda excluye a los ganadores anteriores.</p>
@@ -27,6 +28,30 @@ import { OrdersService } from '../core/orders.service';
       </div>
       @if (configureMessage()) { <p class="field-hint">{{ configureMessage() }}</p> }
       @if (configureError()) { <p class="field-error">{{ configureError() }}</p> }
+    </section>
+
+    <section class="card-surface mb-8 flex flex-col gap-3 p-6">
+      <h2 class="section-title">Mapa de números — trazabilidad</h2>
+      <p class="field-hint mb-1">Todos los números configurados, para que puedas ver de un vistazo cuáles están libres y cuáles ya tiene un comprador.</p>
+      <div class="mb-1 flex flex-wrap items-center gap-4 text-[12px] text-text-secondary">
+        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full border-[1.5px] border-brand-magenta"></span> Disponible ({{ availableCount() }})</span>
+        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-border-soft"></span> Asignado ({{ assignedCount() }})</span>
+        <span class="flex items-center gap-1.5"><span class="size-2.5 rounded-full bg-brand-magenta"></span> Ganador</span>
+        <span class="ml-auto font-medium text-text-primary">{{ allNumbers().length }} número(s) en total</span>
+      </div>
+      @if (allNumbers().length === 0) {
+        <p class="field-hint">Todavía no hay números configurados.</p>
+      } @else {
+        <div class="flex max-h-[360px] flex-wrap gap-2 overflow-y-auto pr-1">
+          @for (n of allNumbers(); track n.id) {
+            <div
+              class="mono-figure flex size-11 items-center justify-center rounded-[var(--radius-sm)] text-[13px] font-medium transition"
+              [class]="n.drawnAsWinner ? 'bg-brand-magenta text-text-on-accent' : n.status === 'AVAILABLE' ? 'border-[1.5px] border-brand-magenta text-brand-magenta' : 'bg-border-soft text-text-secondary/70'"
+              [title]="n.status === 'AVAILABLE' ? 'Disponible' : n.drawnAsWinner ? 'Ganador' : 'Asignado'"
+            >{{ n.number }}</div>
+          }
+        </div>
+      }
     </section>
 
     <div class="mb-8 flex flex-col items-center gap-6 overflow-hidden rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated p-10">
@@ -107,6 +132,22 @@ import { OrdersService } from '../core/orders.service';
         </ul>
       }
     </section>
+
+    <section class="card-surface mt-10 flex flex-col gap-3 border-status-error/30 p-6">
+      <h2 class="section-title text-status-error">Zona de peligro</h2>
+      <p class="field-hint">Borra permanentemente todos los números de la rifa configurados (disponibles y asignados) junto con su historial de sorteo. Úsalo solo para reiniciar la plataforma antes de un evento futuro — no se puede deshacer.</p>
+      <div>
+        <app-confirm-action
+          label="Borrar todos los números de la rifa"
+          variant="secondary"
+          confirmPrompt="Esto borra TODOS los números y su historial de sorteo, sin deshacer. ¿Confirmas?"
+          [disabled]="isDeletingAll() || allNumbers().length === 0"
+          (confirm)="deleteAllNumbers()"
+        />
+      </div>
+      @if (deleteAllMessage()) { <p class="field-hint">{{ deleteAllMessage() }}</p> }
+      @if (deleteAllError()) { <p class="field-error">{{ deleteAllError() }}</p> }
+    </section>
   `,
 })
 export class AdminRaffleDrawPage {
@@ -116,6 +157,13 @@ export class AdminRaffleDrawPage {
   protected readonly eligible = signal<RaffleNumber[]>([]);
   protected readonly orders = signal<Order[]>([]);
   protected readonly history = signal<RaffleDrawHistoryEntry[]>([]);
+  protected readonly allNumbers = signal<RaffleNumber[]>([]);
+  protected readonly isDeletingAll = signal(false);
+  protected readonly deleteAllMessage = signal('');
+  protected readonly deleteAllError = signal('');
+
+  protected readonly availableCount = computed(() => this.allNumbers().filter((n) => n.status === 'AVAILABLE').length);
+  protected readonly assignedCount = computed(() => this.allNumbers().filter((n) => n.status !== 'AVAILABLE').length);
 
   protected readonly verifiedParticipants = computed(() =>
     this.orders()
@@ -160,16 +208,34 @@ export class AdminRaffleDrawPage {
 
   private async refresh(): Promise<void> {
     try {
-      const [eligible, history, orders] = await Promise.all([
+      const [eligible, history, orders, allNumbers] = await Promise.all([
         firstValueFrom(this.raffleApi.eligibleForDraw()),
         firstValueFrom(this.raffleApi.history()),
         firstValueFrom(this.ordersApi.list()),
+        firstValueFrom(this.raffleApi.map()),
       ]);
       this.eligible.set(eligible);
       this.history.set(history);
       this.orders.set(orders);
+      this.allNumbers.set(allNumbers.slice().sort((a, b) => a.number - b.number));
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cargar el sorteo.');
+    }
+  }
+
+  protected async deleteAllNumbers(): Promise<void> {
+    this.deleteAllError.set('');
+    this.deleteAllMessage.set('');
+    this.isDeletingAll.set(true);
+    try {
+      const result = await firstValueFrom(this.raffleApi.deleteAll());
+      this.deleteAllMessage.set(`Se borraron ${result.deletedCount} número(s). Puedes configurar la rifa de nuevo cuando quieras.`);
+      this.lastResult.set(null);
+      this.refresh();
+    } catch (error) {
+      this.deleteAllError.set(error instanceof Error ? error.message : 'No fue posible borrar los números de la rifa.');
+    } finally {
+      this.isDeletingAll.set(false);
     }
   }
 

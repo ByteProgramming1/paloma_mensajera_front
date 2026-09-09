@@ -90,13 +90,8 @@ const TEAMS_COPY_ENABLED = false;
                 @if (order.status !== 'DELIVERED') {
                   <app-confirm-action label="Marcar entregado" confirmPrompt="¿Confirmas la entrega?" (confirm)="markDelivered(order)" />
                 }
-                @if (!order.selfPickup && order.status !== 'DELIVERED') {
-                  @if (teamsCopyEnabled) {
-                    <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
-                  }
-                  @if (!order.teamsNotificationSent) {
-                    <button type="button" class="btn-ghost" (click)="notify(order)">Notificar automático</button>
-                  }
+                @if (!order.selfPickup && order.status !== 'DELIVERED' && teamsCopyEnabled) {
+                  <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                 }
               </div>
             }
@@ -168,11 +163,6 @@ export class DeliveriesPage {
 
   protected async markDelivered(order: Order): Promise<void> {
     await firstValueFrom(this.ordersApi.updateDeliveryStatus(order.id, 'DELIVERED', { receivedBy: this.receivedByDrafts[order.id] }));
-    this.load();
-  }
-
-  protected async notify(order: Order): Promise<void> {
-    await firstValueFrom(this.ordersApi.notifyTeams(order.id));
     this.load();
   }
 

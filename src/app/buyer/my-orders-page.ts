@@ -62,7 +62,7 @@ import { Icon } from '../shared/icon';
                 <div class="grid gap-x-6 gap-y-3 text-[13px] text-text-primary sm:grid-cols-2">
                   @if (!order.selfPickup) {
                     <p><span class="field-label block">Carrera / área del destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
-                    <p><span class="field-label block">Usuario de Teams</span> {{ order.recipientTeamsUser ?? '—' }}</p>
+                    <p><span class="field-label block">Correo institucional</span> {{ order.recipientTeamsUser ?? '—' }}</p>
                   } @else if (order.deliveryNotes) {
                     <p class="sm:col-span-2"><span class="field-label block">Tu comentario para quien te entregue</span> {{ order.deliveryNotes }}</p>
                   }
