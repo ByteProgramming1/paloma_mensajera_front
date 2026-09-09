@@ -2,7 +2,7 @@ import { isPlatformBrowser } from '@angular/common';
 import { inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from './api-client.service';
-import { AuthSession, LoginResponse, RegisterResponse, UserRole } from './api.models';
+import { AuthSession, LoginResponse, MeResponse, RegisterResponse, UserRole } from './api.models';
 
 const SESSION_KEY = 'paloma_session';
 interface LoginPayload { email: string; password: string; }
@@ -37,6 +37,24 @@ export class AuthService {
   logout(): void {
     if (isPlatformBrowser(this.platformId)) sessionStorage.removeItem(SESSION_KEY);
     this.session.set(null);
+  }
+
+  // Se llama al arrancar la app (ver appInitializer en app.config.ts): roleSlug/permissions
+  // quedan cacheados en sessionStorage desde el login y nunca se revalidan por su cuenta, así
+  // que si un admin cambió el rol del usuario en otra sesión, esto lo refresca antes de que las
+  // guards/menús decidan qué mostrar con datos viejos. Si falla (ej. sin conexión), se sigue con
+  // lo que ya había en cache — un 401/403 real ya fuerza logout vía el interceptor.
+  async refreshSession(): Promise<void> {
+    const current = this.session();
+    if (!current) return;
+    try {
+      const fresh = await firstValueFrom(this.api.get<MeResponse>('/auth/me'));
+      const session: AuthSession = { ...current, user: fresh.user, roleSlug: fresh.roleSlug, permissions: fresh.permissions };
+      if (isPlatformBrowser(this.platformId)) sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      this.session.set(session);
+    } catch {
+      // sin conexión u otro error no-401/403: se mantiene la sesión cacheada
+    }
   }
 
   hasRole(...roles: UserRole[]): boolean {
