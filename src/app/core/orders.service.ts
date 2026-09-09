@@ -30,6 +30,4 @@ export class OrdersService {
   updateDeliveryStatus(id: string, status: DeliveryStatus, details?: { receivedBy?: string; teamsConfirmationLog?: string; notes?: string }) {
     return this.api.patch<Order>(`/orders/${id}/delivery-status`, { status, ...details });
   }
-
-  notifyTeams(id: string) { return this.api.post<{ sent: boolean }>(`/orders/${id}/notify-teams`); }
 }

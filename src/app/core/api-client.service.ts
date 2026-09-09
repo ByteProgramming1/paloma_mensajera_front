@@ -57,11 +57,19 @@ export class ApiClientService {
   }
 }
 
-// Códigos que reciben un mensaje genérico y amable en vez del mensaje crudo del backend.
-// 5xx y errores de red pueden traer detalles técnicos internos (ej. una excepción sin capturar
-// del proveedor de correo) que no le sirven al usuario y no deberían mostrarse tal cual.
-// 4xx (400/401 con mensaje de negocio/404/409/422, etc.) sí trae mensajes pensados para mostrarse.
-const GENERIC_MESSAGE_BY_STATUS: Record<number, string> = {
+// El backend ya arma mensajes 401/403/404 pensados para mostrarse tal cual y en español
+// (ver AuthService, PermissionsGuard, OrdersService, etc. — todos sus throw new
+// UnauthorizedException/ForbiddenException/NotFoundException llevan mensaje explícito). El
+// único caso en que NO trae nada útil es cuando el propio framework genera el 401/403 antes
+// de que nuestro código intervenga (ej. Passport rechazando un token ausente/inválido en una
+// ruta protegida) — ahí el mensaje crudo es el default en inglés de Nest/Passport. Por eso acá
+// solo se pisa el mensaje del backend cuando coincide con uno de esos defaults conocidos; si el
+// backend ya mandó algo propio, se respeta siempre. Antes esto pisaba TODO 401/403/404 con un
+// genérico sin importar lo que mandara el backend, lo que escondía mensajes de negocio válidos
+// (ej. "Credenciales invalidas." o "Este pedido no te pertenece.") detrás de un genérico confuso.
+const FRAMEWORK_DEFAULT_MESSAGES = new Set(['Unauthorized', 'Forbidden resource', 'Not Found']);
+
+const FALLBACK_MESSAGE_BY_STATUS: Record<number, string> = {
   0: 'No hay conexión con el servidor. Verifica tu internet e intenta de nuevo.',
   401: 'Tu sesión expiró o no iniciaste sesión. Inicia sesión de nuevo.',
   403: 'No tienes permiso para hacer esto.',
@@ -71,21 +79,36 @@ const GENERIC_MESSAGE_BY_STATUS: Record<number, string> = {
 };
 
 function friendlyMessageFor(error: HttpErrorResponse): string {
+  // 5xx y errores de red pueden traer detalles técnicos internos (ej. una excepción sin
+  // capturar del proveedor de correo) que no le sirven al usuario y no deberían mostrarse tal
+  // cual — a diferencia de los 4xx, un 5xx es siempre un bug, no un estado esperado, así que
+  // acá sí conviene un genérico fijo en vez de confiar en lo que venga en el body.
   if (error.status >= 500) {
     return 'Ocurrió un error en el servidor. Intenta de nuevo en unos minutos; si sigue pasando, avisa al equipo.';
   }
-  const generic = GENERIC_MESSAGE_BY_STATUS[error.status];
-  if (generic) return generic;
+  // 408 (timeout) y 429 (rate limit del ThrottlerModule) son de la capa HTTP/infraestructura,
+  // no mensajes de negocio del backend — su versión cruda ("ThrottlerException: Too Many
+  // Requests") tampoco le sirve al usuario, así que siempre van con el genérico.
+  if (error.status === 408 || error.status === 429) return FALLBACK_MESSAGE_BY_STATUS[error.status];
 
   const payload = error.error as { message?: string | string[] } | null;
   if (Array.isArray(payload?.message)) return payload.message.map(translateValidationMessage).join(' ');
-  const message = payload?.message ?? error.message;
-  return message ? translateValidationMessage(message) : 'No fue posible completar la solicitud.';
+
+  const backendMessage = payload?.message;
+  if (backendMessage && !FRAMEWORK_DEFAULT_MESSAGES.has(backendMessage)) {
+    return translateValidationMessage(backendMessage);
+  }
+
+  return FALLBACK_MESSAGE_BY_STATUS[error.status] ?? (error.message ? translateValidationMessage(error.message) : 'No fue posible completar la solicitud.');
 }
 
-// Nombres de campo en español para los mensajes de validación crudos (class-validator los genera en
-// inglés usando el nombre de la propiedad del DTO tal cual). Cubre los formularios reales de la app
-// (login, registro, verificación, checkout); un campo no listado cae al nombre entre comillas.
+// Nombres de campo en español, más amigables que el nombre crudo de la propiedad del DTO
+// (ej. "buyerFullName"). El backend (ver ValidationPipe.exceptionFactory en main.ts +
+// validation-error-translator.ts) ya traduce el mensaje completo al español para los 27 DTOs,
+// pero sigue usando el nombre de la propiedad tal cual como sujeto de la frase (ej. "buyerFullName
+// no debe estar vacio"): esto solo reemplaza ese nombre crudo por una etiqueta legible cuando la
+// conocemos. Un campo no listado se deja como venga del backend — ya está en español, solo menos
+// pulido.
 const FIELD_NAMES_ES: Record<string, string> = {
   email: 'El correo',
   password: 'La contraseña',
@@ -98,35 +121,14 @@ const FIELD_NAMES_ES: Record<string, string> = {
   token: 'El enlace',
   phone: 'El teléfono',
   recipientFullName: 'El nombre del destinatario',
-  recipientTeamsUser: 'El usuario de Teams del destinatario',
+  recipientTeamsUser: 'El correo institucional del destinatario',
   letterContent: 'La dedicatoria',
 };
 
-function fieldNameEs(property: string): string {
-  return FIELD_NAMES_ES[property] ?? `El campo "${property}"`;
-}
-
-// Traduce los mensajes en inglés que class-validator genera automáticamente a partir de los
-// decoradores del DTO (ej. "password must be longer than or equal to 1 characters"). Es una red de
-// seguridad en el frontend — lo correcto es que el backend defina sus propios mensajes en español,
-// pero mientras eso no cubra el 100% de los DTOs, esto evita que el inglés crudo le llegue al usuario.
-// Un mensaje que no calza con ningún patrón conocido se muestra tal cual (mejor un mensaje en inglés
-// puntual que uno inventado que no corresponda al error real).
-const VALIDATION_PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
-  [/^(\w+) should not be empty$/i, (m) => `${fieldNameEs(m[1])} es obligatorio.`],
-  [/^(\w+) must be longer than or equal to (\d+) characters?$/i, (m) => `${fieldNameEs(m[1])} debe tener al menos ${m[2]} caracteres.`],
-  [/^(\w+) must be shorter than or equal to (\d+) characters?$/i, (m) => `${fieldNameEs(m[1])} debe tener como máximo ${m[2]} caracteres.`],
-  [/^(\w+) must be an email$/i, (m) => `${fieldNameEs(m[1])} no es un correo válido.`],
-  [/^(\w+) must be a valid (?:ISO 8601 )?date(?: string)?$/i, (m) => `${fieldNameEs(m[1])} no es una fecha válida.`],
-  [/^(\w+) must be a number(?: conforming to the specified constraints)?$/i, (m) => `${fieldNameEs(m[1])} debe ser un número.`],
-  [/^(\w+) must not be less than (\d+)$/i, (m) => `${fieldNameEs(m[1])} no puede ser menor que ${m[2]}.`],
-  [/^(\w+) must be one of the following values: (.+)$/i, (m) => `${fieldNameEs(m[1])} debe ser uno de estos valores: ${m[2]}.`],
-];
-
+// Sustituye el nombre crudo de la propiedad al inicio del mensaje (si lo reconocemos) por su
+// etiqueta legible, preservando el resto de la frase que ya viene en español desde el backend.
 function translateValidationMessage(message: string): string {
-  for (const [pattern, translate] of VALIDATION_PATTERNS) {
-    const match = message.match(pattern);
-    if (match) return translate(match);
-  }
-  return message;
+  const match = message.match(/^(\w+)\b/);
+  const label = match ? FIELD_NAMES_ES[match[1]] : undefined;
+  return label ? label + message.slice(match![1].length) : message;
 }

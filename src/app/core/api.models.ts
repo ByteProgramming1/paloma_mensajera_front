@@ -189,6 +189,10 @@ export interface RaffleConfigureResult {
   numbersCreated: number;
 }
 
+export interface RaffleDeleteAllResult {
+  deletedCount: number;
+}
+
 // POST /raffle-numbers/draw y GET /raffle-numbers/draw-history usan formas distintas entre sí
 // (verificado contra el server real, no coinciden con lo que sugiere el SDD).
 

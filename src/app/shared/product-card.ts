@@ -37,6 +37,23 @@ import { Icon } from './icon';
       @if (quantity() > 0 && addOnGroup(); as group) {
         <div class="field paloma-enter">
           <span class="field-label">{{ group.name }}</span>
+
+          @if (selectedOption(); as selected) {
+            <div class="mb-2 flex items-center gap-3 rounded-[var(--radius-sm)] border border-brand-magenta/25 bg-brand-magenta/5 p-2">
+              <div class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
+                @if (selected.imageUrl) {
+                  <img [src]="selected.imageUrl" [alt]="selected.name" class="size-full object-cover" />
+                } @else {
+                  <app-icon name="envelope" [size]="28" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+                }
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] font-medium text-text-secondary">Vista previa</p>
+                <p class="line-clamp-2 text-[14px] font-medium text-text-primary">{{ selected.name }}</p>
+              </div>
+            </div>
+          }
+
           <div class="grid grid-cols-3 gap-2">
             @for (option of group.options; track option.id) {
               <button
@@ -71,5 +88,12 @@ export class ProductCard {
 
   protected addOnGroup() {
     return this.product().addOnGroups?.[0] ?? null;
+  }
+
+  protected selectedOption() {
+    const group = this.addOnGroup();
+    const selectedId = this.selectedAddOnOptionId();
+    if (!group || !selectedId) return null;
+    return group.options.find((option) => option.id === selectedId) ?? null;
   }
 }
