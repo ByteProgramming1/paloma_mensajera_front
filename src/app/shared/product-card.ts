@@ -7,7 +7,7 @@ import { Icon } from './icon';
   selector: 'app-product-card',
   imports: [CurrencyPipe, Icon],
   template: `
-    <article class="card-surface group flex w-full max-w-[320px] flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(41,20,33,.06),0_16px_32px_-14px_rgba(41,20,33,.22)]">
+    <article class="card-surface group flex h-full w-full flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(41,20,33,.06),0_16px_32px_-14px_rgba(41,20,33,.22)]">
       <div class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
         @if (product().imageUrl) {
           <img [src]="product().imageUrl" [alt]="product().name" class="size-full object-contain transition duration-300 group-hover:scale-[1.03]" />
@@ -21,12 +21,12 @@ import { Icon } from './icon';
         }
       </div>
       <div>
-        <p class="font-semibold text-[17px] leading-snug text-text-primary">{{ product().name }}</p>
-        @if (product().stock > 0 && product().stock <= 5) {
-          <p class="mt-0.5 text-[12px] font-medium text-status-pendiente">Quedan {{ product().stock }} unidades</p>
-        }
+        <p class="line-clamp-2 min-h-[44px] font-semibold text-[17px] leading-snug text-text-primary">{{ product().name }}</p>
+        <p class="mt-0.5 min-h-[16px] text-[12px] font-medium text-status-pendiente">
+          @if (product().stock > 0 && product().stock <= 5) { Quedan {{ product().stock }} unidades }
+        </p>
       </div>
-      <div class="flex h-10 items-center justify-between">
+      <div class="mt-auto flex h-10 items-center justify-between">
         <p class="mono-figure text-[18px] font-semibold text-brand-magenta">{{ product().price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
         <div class="flex items-center gap-3 rounded-[var(--radius-sm)] border border-border-default bg-bg-surface-elevated px-2.5 py-1.5">
           <button type="button" class="flex size-6 items-center justify-center rounded-full font-bold text-brand-magenta transition hover:bg-brand-magenta/10 disabled:opacity-30 disabled:hover:bg-transparent" [disabled]="quantity() <= 0" (click)="quantityChange.emit(quantity() - 1)" aria-label="Quitar uno">–</button>

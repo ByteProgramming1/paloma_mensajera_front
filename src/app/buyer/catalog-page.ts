@@ -18,7 +18,7 @@ import { ProductCard } from '../shared/product-card';
     } @else if (errorMessage()) {
       <p class="field-error">{{ errorMessage() }}</p>
     } @else {
-      <div class="flex flex-wrap gap-6 pb-4">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] items-stretch gap-4 pb-4 sm:gap-6">
         @for (product of products(); track product.id) {
           <app-product-card
             [product]="product"
