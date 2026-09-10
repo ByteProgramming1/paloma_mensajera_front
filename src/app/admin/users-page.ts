@@ -92,6 +92,15 @@ import { Icon } from '../shared/icon';
         </section>
       </aside>
     </div>
+
+    @if (successMessage()) {
+      <div class="paloma-enter pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
+        <div class="pointer-events-auto flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-status-entregado/30 bg-bg-surface-elevated px-4 py-3 text-[13px] font-medium text-status-entregado shadow-[0_4px_12px_rgba(41,20,33,0.08),0_20px_44px_-16px_rgba(41,20,33,0.28)]">
+          <app-icon name="check" [size]="16" [strokeWidth]="2.5" />
+          {{ successMessage() }}
+        </div>
+      </div>
+    }
   `,
 })
 export class AdminUsersPage {
@@ -101,6 +110,8 @@ export class AdminUsersPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly tempMessage = signal('');
+  protected readonly successMessage = signal('');
+  private successTimeout?: ReturnType<typeof setTimeout>;
   protected readonly nameFilter = signal('');
 
   protected readonly filteredUsers = computed(() => {
@@ -158,10 +169,12 @@ export class AdminUsersPage {
       return;
     }
 
+    this.errorMessage.set('');
     try {
       await firstValueFrom(this.adminApi.reassignRole(user.id, pending.role, new Date(pending.expiresAt).toISOString()));
       this.pendingRoles.update(({ [user.id]: _removed, ...remaining }) => remaining);
       await this.load();
+      this.announceSuccess('Rol actualizado.');
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cambiar el rol.');
     }
@@ -172,8 +185,21 @@ export class AdminUsersPage {
   }
 
   protected async toggle(user: StaffUser): Promise<void> {
-    await firstValueFrom(this.adminApi.toggleUser(user.id, !user.isActive));
-    this.load();
+    const activating = !user.isActive;
+    this.errorMessage.set('');
+    try {
+      await firstValueFrom(this.adminApi.toggleUser(user.id, activating));
+      await this.load();
+      this.announceSuccess(activating ? 'Usuario activado.' : 'Usuario desactivado.');
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible actualizar el usuario.');
+    }
+  }
+
+  private announceSuccess(message: string): void {
+    clearTimeout(this.successTimeout);
+    this.successMessage.set(message);
+    this.successTimeout = setTimeout(() => this.successMessage.set(''), 3000);
   }
 
   protected async createTemporary(): Promise<void> {
