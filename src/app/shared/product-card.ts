@@ -10,7 +10,7 @@ import { Icon } from './icon';
     <article class="card-surface group flex w-full max-w-[320px] flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(41,20,33,.06),0_16px_32px_-14px_rgba(41,20,33,.22)]">
       <div class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
         @if (product().imageUrl) {
-          <img [src]="product().imageUrl" [alt]="product().name" class="size-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+          <img [src]="product().imageUrl" [alt]="product().name" class="size-full object-contain transition duration-300 group-hover:scale-[1.03]" />
         } @else {
           <app-icon name="gift" [size]="36" [strokeWidth]="1.4" class="text-brand-magenta/35" />
         }
@@ -42,7 +42,7 @@ import { Icon } from './icon';
             <div class="mb-2 flex items-center gap-3 rounded-[var(--radius-sm)] border border-brand-magenta/25 bg-brand-magenta/5 p-2">
               <div class="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
                 @if (selected.imageUrl) {
-                  <img [src]="selected.imageUrl" [alt]="selected.name" class="size-full object-cover" />
+                  <img [src]="selected.imageUrl" [alt]="selected.name" class="size-full object-contain" />
                 } @else {
                   <app-icon name="envelope" [size]="28" [strokeWidth]="1.4" class="text-brand-magenta/40" />
                 }
@@ -64,7 +64,7 @@ import { Icon } from './icon';
               >
                 <div class="flex size-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-base">
                   @if (option.imageUrl) {
-                    <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-cover" />
+                    <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-contain" />
                   } @else {
                     <app-icon name="envelope" [size]="18" [strokeWidth]="1.5" class="text-brand-magenta/40" />
                   }
