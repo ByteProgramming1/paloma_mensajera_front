@@ -11,6 +11,7 @@ interface RawStaffUser {
   expiresAt?: string | null;
   roleExpiresAt?: string | null;
   createdAt?: string;
+  emailVerifiedAt?: string | null;
   role: { slug: UserRole; name: string };
 }
 
@@ -22,15 +23,17 @@ export class AdminService {
 
   listUsers() {
     return this.api.get<RawStaffUser[]>('/users').pipe(
-      map((users) => users.map((user): StaffUser => ({
-        id: user.id,
-        email: user.email,
-        fullName: user.name,
-        role: user.role.slug,
-        isActive: user.isActive,
-        expiresAt: user.expiresAt,
-        roleExpiresAt: user.roleExpiresAt,
-      }))),
+      map((users) => users
+        .filter((user) => !!user.emailVerifiedAt)
+        .map((user): StaffUser => ({
+          id: user.id,
+          email: user.email,
+          fullName: user.name,
+          role: user.role.slug,
+          isActive: user.isActive,
+          expiresAt: user.expiresAt,
+          roleExpiresAt: user.roleExpiresAt,
+        }))),
     );
   }
 
