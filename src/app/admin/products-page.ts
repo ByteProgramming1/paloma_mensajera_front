@@ -30,7 +30,7 @@ import { Icon } from '../shared/icon';
               <li class="card-surface flex flex-col gap-3 p-5">
             <div class="relative flex h-32 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
               @if (product.imageUrl) {
-                <img [src]="product.imageUrl" [alt]="product.name" class="size-full object-cover" />
+                <img [src]="product.imageUrl" [alt]="product.name" class="size-full object-contain" />
               } @else {
                 <app-icon name="gift" [size]="28" [strokeWidth]="1.4" class="text-brand-magenta/35" />
               }

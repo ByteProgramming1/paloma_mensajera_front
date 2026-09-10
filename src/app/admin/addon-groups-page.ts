@@ -33,7 +33,7 @@ import { Icon } from '../shared/icon';
                     <li class="flex flex-col items-center gap-2 rounded-[var(--radius-sm)] bg-bg-base p-3" [class.opacity-50]="!option.isActive">
                       <div class="flex size-16 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
                         @if (option.imageUrl) {
-                          <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-cover" />
+                          <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-contain" />
                         } @else {
                           <app-icon name="envelope" [size]="20" [strokeWidth]="1.5" class="text-brand-magenta/40" />
                         }
