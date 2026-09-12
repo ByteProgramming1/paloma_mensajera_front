@@ -15,7 +15,7 @@ const ROLE_LABEL: Record<UserRole, string> = { admin: 'Administrador', seller: '
     <header class="sticky top-0 z-10 border-b border-border-soft bg-bg-surface-elevated/90 backdrop-blur-md">
       <div class="flex min-h-[64px] items-center justify-between gap-4 px-4 sm:px-6">
         <a [routerLink]="homePath()" class="flex shrink-0 items-center gap-2.5 text-[13px] font-semibold text-text-primary">
-          <img src="assets/logos/paloma-mensajera.png" alt="" class="h-8 w-8 object-contain sm:h-9 sm:w-9" />
+          <img src="assets/logos/paloma-mensajera.png" alt="" class="h-8 w-8 rounded-full object-cover sm:h-9 sm:w-9" />
           <span class="hidden sm:inline">Paloma Mensajera</span>
         </a>
 
