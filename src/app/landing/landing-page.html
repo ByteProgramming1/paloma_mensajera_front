@@ -40,7 +40,7 @@
       <form (ngSubmit)="submitAuth()">
       @if (authMode() === 'verify') {
         <h3>Ingresa tu código</h3>
-        <p class="login-caption">Revisa tu correo institucional y escribe el código de 6 dígitos.</p>
+        <p class="login-caption">Revisa tu correo institucional y escribe el código de 6 dígitos. Si no lo ves, revisa también la carpeta de spam o correo no deseado.</p>
         <label class="field-label" for="verification-code">Código de verificación</label>
         <input id="verification-code" class="auth-input auth-input--code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [value]="code()" (input)="updateField('code', $event)" placeholder="000000" />
         <button type="submit" class="auth-button" [disabled]="isLoading()">
