@@ -9,6 +9,7 @@ import { Icon } from '../shared/icon';
 import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
+import { ToastService } from '../shared/toast.service';
 
 const DELIVERABLE = new Set(['PAYMENT_VERIFIED', 'IN_PREPARATION', 'IN_ROUTE', 'DELIVERED']);
 const PAGE_SIZE = 10;
@@ -104,6 +105,7 @@ const TEAMS_COPY_ENABLED = false;
 })
 export class DeliveriesPage {
   private readonly ordersApi = inject(OrdersService);
+  private readonly toast = inject(ToastService);
   protected readonly DELIVERABLE_SET = DELIVERABLE;
   protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
 
@@ -163,6 +165,7 @@ export class DeliveriesPage {
 
   protected async markDelivered(order: Order): Promise<void> {
     await firstValueFrom(this.ordersApi.updateDeliveryStatus(order.id, 'DELIVERED', { receivedBy: this.receivedByDrafts[order.id] }));
+    this.toast.success('Entrega marcada como realizada.');
     this.load();
   }
 

@@ -5,6 +5,7 @@ import { OrderMessageQueueItem } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
 import { ConfirmAction } from '../shared/confirm-action';
 import { Icon } from '../shared/icon';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-messages-queue-page',
@@ -65,6 +66,7 @@ import { Icon } from '../shared/icon';
 })
 export class MessagesQueuePage {
   private readonly ordersApi = inject(OrdersService);
+  private readonly toast = inject(ToastService);
 
   protected search = '';
   protected readonly orders = signal<OrderMessageQueueItem[]>([]);
@@ -97,12 +99,14 @@ export class MessagesQueuePage {
 
   protected async approve(order: OrderMessageQueueItem): Promise<void> {
     await firstValueFrom(this.ordersApi.verifyMessage(order.orderId, true));
+    this.toast.success('Dedicatoria aprobada.');
     this.load();
   }
 
   protected async reject(order: OrderMessageQueueItem): Promise<void> {
     await firstValueFrom(this.ordersApi.verifyMessage(order.orderId, false, this.rejectionReason.trim()));
     this.rejectingId.set(null);
+    this.toast.success('Dedicatoria rechazada.');
     this.load();
   }
 }

@@ -9,6 +9,7 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
 import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
+import { ToastService } from '../shared/toast.service';
 
 const PAGE_SIZE = 10;
 // Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
@@ -25,11 +26,14 @@ type Tab = 'pagos' | 'todos';
 
     <div class="mb-6 inline-flex gap-1 rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated p-1">
       <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'pagos' ? 'btn-primary' : 'btn-ghost'" (click)="setTab('pagos')">
-        Verificar pagos
+        Verificar pagos en línea
         @if (pendingCount() > 0) { <span class="ml-1.5 rounded-full bg-status-pendiente px-1.5 py-0.5 text-[11px] font-bold text-text-on-accent">{{ pendingCount() }}</span> }
       </button>
       <button type="button" class="btn !px-4 !py-1.5 text-[13px] sm:!px-6 sm:!py-2 sm:text-[15px]" [class]="tab() === 'todos' ? 'btn-primary' : 'btn-ghost'" (click)="setTab('todos')">Todos los pedidos</button>
     </div>
+    @if (tab() === 'pagos') {
+      <p class="field-hint mb-4">Solo pagos por Nequi/Bre-B — los pagos en efectivo en el stand los confirma un Vendedor desde su propia sección de Pagos.</p>
+    }
 
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
     @if (isLoading()) {
@@ -71,7 +75,7 @@ type Tab = 'pagos' | 'todos';
                 <p>
                   <span class="field-label block">Pago</span>
                   @if (order.payment) {
-                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod }}
+                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod === 'CASH' ? 'Efectivo en el stand' : 'Nequi / Bre-B' }}
                     @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
                   } @else { Sin registro de pago }
                 </p>
@@ -94,7 +98,7 @@ type Tab = 'pagos' | 'todos';
             @if (tab() === 'pagos' && order.status === 'PAYMENT_PENDING') {
               <div class="flex flex-wrap items-center gap-3">
                 <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[order.id]" placeholder="Notas de verificación (opcional)" />
-                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi?" (confirm)="verifyPayment(order, true)" />
+                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi/Bre-B?" (confirm)="verifyPayment(order, true)" />
                 <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyPayment(order, false)" />
               </div>
             }
@@ -107,6 +111,7 @@ type Tab = 'pagos' | 'todos';
 })
 export class AdminOrdersPage {
   private readonly ordersApi = inject(OrdersService);
+  private readonly toast = inject(ToastService);
   protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
 
   protected readonly tab = signal<Tab>('pagos');
@@ -119,7 +124,9 @@ export class AdminOrdersPage {
   protected readonly visibleOrders = computed(() => {
     const all = this.orders();
     switch (this.tab()) {
-      case 'pagos': return all.filter((order) => order.status === 'PAYMENT_PENDING');
+      // Solo ONLINE: los pagos PRESENCIAL (efectivo en el stand) los verifica un Vendedor,
+      // no el Administrador — ver seller/verify-payments-page.ts.
+      case 'pagos': return all.filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE');
       default: return all;
     }
   });
@@ -131,7 +138,7 @@ export class AdminOrdersPage {
     return this.visibleOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
 
-  protected readonly pendingCount = computed(() => this.orders().filter((order) => order.status === 'PAYMENT_PENDING').length);
+  protected readonly pendingCount = computed(() => this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE').length);
 
   constructor() {
     this.load();
@@ -156,6 +163,7 @@ export class AdminOrdersPage {
 
   protected async verifyPayment(order: Order, verified: boolean): Promise<void> {
     await firstValueFrom(this.ordersApi.verifyPayment(order.id, verified, this.notesDrafts[order.id]));
+    this.toast.success(verified ? 'Pago confirmado.' : 'Pago rechazado.');
     this.load();
   }
 

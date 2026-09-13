@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { StaffRole, StaffUser, UserRole } from '../core/api.models';
 import { AdminService } from '../core/admin.service';
 import { Icon } from '../shared/icon';
+import { ToastService } from '../shared/toast.service';
 
 const RESET_CONFIRM_WORD = 'BORRAR';
 
@@ -119,19 +120,11 @@ const RESET_CONFIRM_WORD = 'BORRAR';
         </section>
       </aside>
     </div>
-
-    @if (successMessage()) {
-      <div class="paloma-enter pointer-events-none fixed inset-x-4 bottom-4 z-50 flex justify-center sm:inset-x-auto sm:right-6 sm:justify-end">
-        <div class="pointer-events-auto flex items-center gap-2.5 rounded-[var(--radius-sm)] border border-status-entregado/30 bg-bg-surface-elevated px-4 py-3 text-[13px] font-medium text-status-entregado shadow-[0_4px_12px_rgba(41,20,33,0.08),0_20px_44px_-16px_rgba(41,20,33,0.28)]">
-          <app-icon name="check" [size]="16" [strokeWidth]="2.5" />
-          {{ successMessage() }}
-        </div>
-      </div>
-    }
   `,
 })
 export class AdminUsersPage {
   private readonly adminApi = inject(AdminService);
+  private readonly toast = inject(ToastService);
   protected readonly RESET_CONFIRM_WORD = RESET_CONFIRM_WORD;
   protected resetKeepCombosPhrase = '';
   protected resetFullPhrase = '';
@@ -142,8 +135,6 @@ export class AdminUsersPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly tempMessage = signal('');
-  protected readonly successMessage = signal('');
-  private successTimeout?: ReturnType<typeof setTimeout>;
   protected readonly nameFilter = signal('');
 
   protected readonly filteredUsers = computed(() => {
@@ -206,7 +197,7 @@ export class AdminUsersPage {
       await firstValueFrom(this.adminApi.reassignRole(user.id, pending.role, new Date(pending.expiresAt).toISOString()));
       this.pendingRoles.update(({ [user.id]: _removed, ...remaining }) => remaining);
       await this.load();
-      this.announceSuccess('Rol actualizado.');
+      this.toast.success('Rol actualizado.');
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cambiar el rol.');
     }
@@ -222,16 +213,10 @@ export class AdminUsersPage {
     try {
       await firstValueFrom(this.adminApi.toggleUser(user.id, activating));
       await this.load();
-      this.announceSuccess(activating ? 'Usuario activado.' : 'Usuario desactivado.');
+      this.toast.success(activating ? 'Usuario activado.' : 'Usuario desactivado.');
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible actualizar el usuario.');
     }
-  }
-
-  private announceSuccess(message: string): void {
-    clearTimeout(this.successTimeout);
-    this.successMessage.set(message);
-    this.successTimeout = setTimeout(() => this.successMessage.set(''), 3000);
   }
 
   protected async confirmResetKeepCombos(): Promise<void> {
@@ -251,7 +236,7 @@ export class AdminUsersPage {
     this.resetInProgress.set(true);
     try {
       await firstValueFrom(action());
-      this.announceSuccess('Base de datos restablecida.');
+      this.toast.success('Base de datos restablecida.');
       await this.load();
     } catch (error) {
       this.resetError.set(error instanceof Error ? error.message : 'No fue posible restablecer la base de datos.');

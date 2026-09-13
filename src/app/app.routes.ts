@@ -9,6 +9,7 @@ import { OrderStatusPage } from './buyer/order-status-page';
 import { RafflePage } from './buyer/raffle-page';
 import { MessagesQueuePage } from './seller/messages-queue-page';
 import { DeliveriesPage } from './seller/deliveries-page';
+import { SellerVerifyPaymentsPage } from './seller/verify-payments-page';
 import { AdminOrdersPage } from './admin/orders-page';
 import { AdminRaffleDrawPage } from './admin/raffle-draw-page';
 import { AdminUsersPage } from './admin/users-page';
@@ -29,6 +30,7 @@ export const routes: Routes = [
       { path: 'pedidos/:id', component: OrderStatusPage },
       { path: 'pedidos/:id/rifa', component: RafflePage },
       { path: 'vendedor/mensajes', component: MessagesQueuePage, canActivate: [roleGuard(['seller', 'admin'])] },
+      { path: 'vendedor/pagos', component: SellerVerifyPaymentsPage, canActivate: [roleGuard(['seller'])] },
       { path: 'vendedor/entregas', component: DeliveriesPage, canActivate: [roleGuard(['seller', 'admin'])] },
       { path: 'admin/pedidos', component: AdminOrdersPage, canActivate: [roleGuard(['admin'])] },
       { path: 'admin/sorteo', component: AdminRaffleDrawPage, canActivate: [roleGuard(['admin'])] },
