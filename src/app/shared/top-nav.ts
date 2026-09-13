@@ -89,6 +89,7 @@ export class TopNav {
     if (this.auth.hasRole('seller')) {
       return [
         { path: '/vendedor/mensajes', label: 'Dedicatorias' },
+        { path: '/vendedor/pagos', label: 'Pagos en el stand' },
         { path: '/vendedor/entregas', label: 'Entregas' },
       ];
     }
