@@ -8,6 +8,8 @@ import { join } from 'node:path';
 const REPLACEMENTS = [
   { key: 'apiUrl', env: 'PALOMA_API_URL' },
   { key: 'nequiPhone', env: 'PALOMA_NEQUI_PHONE' },
+  { key: 'brebKey', env: 'PALOMA_BREB_KEY' },
+  { key: 'sellerFullName', env: 'PALOMA_SELLER_FULL_NAME' },
 ];
 
 const browserDir = join(process.cwd(), 'dist', 'paloma-mensajera', 'browser');

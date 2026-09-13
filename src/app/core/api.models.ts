@@ -62,6 +62,9 @@ export interface Product {
   isActive: boolean;
   imageUrl?: string | null;
   addOnGroups?: ProductAddOnGroup[];
+  // Si es false, el producto no se puede enviar a otra persona: el comprador debe recogerlo
+  // él mismo en el stand (ej. la paleta vendida sola, sin combo). Default true en el backend.
+  giftable?: boolean;
 }
 
 export interface CartItem {

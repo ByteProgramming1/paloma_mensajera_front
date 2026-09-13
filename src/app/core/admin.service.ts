@@ -48,4 +48,14 @@ export class AdminService {
   createTemporaryUser(payload: { email: string; name: string; roleSlug: StaffRole; expiresAt: string; password?: string }) {
     return this.api.post<RegisterResponse>('/auth/temporary-user', payload);
   }
+
+  /** Borra toda la base de datos excepto la cuenta admin por defecto y los productos tipo COMBO. */
+  resetKeepCombos() {
+    return this.api.post<{ message?: string }>('/admin/danger/reset-keep-combos');
+  }
+
+  /** Borra toda la base de datos excepto el correo y contraseña de la cuenta admin por defecto. */
+  resetFull() {
+    return this.api.post<{ message?: string }>('/admin/danger/reset-full');
+  }
 }

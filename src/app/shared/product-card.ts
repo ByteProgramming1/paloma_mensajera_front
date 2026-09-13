@@ -25,6 +25,9 @@ import { Icon } from './icon';
         <p class="mt-0.5 min-h-[16px] text-[12px] font-medium text-status-pendiente">
           @if (product().stock > 0 && product().stock <= 5) { Quedan {{ product().stock }} unidades }
         </p>
+        @if (product().giftable === false) {
+          <p class="mt-0.5 text-[12px] font-medium text-text-secondary">Solo recogida en el stand — no se puede enviar</p>
+        }
       </div>
       <div class="mt-auto flex h-10 items-center justify-between">
         <p class="mono-figure text-[18px] font-semibold text-brand-magenta">{{ product().price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>

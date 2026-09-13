@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core';
 import { catchError, Observable, throwError } from 'rxjs';
 
-interface RuntimeConfig { apiUrl?: string; nequiPhone?: string; }
+interface RuntimeConfig { apiUrl?: string; nequiPhone?: string; brebKey?: string; sellerFullName?: string; }
 
 @Injectable({ providedIn: 'root' })
 export class ApiClientService {
@@ -11,6 +11,16 @@ export class ApiClientService {
   /** Número de Nequi al que se transfiere el pago — configurable vía PALOMA_NEQUI_PHONE (ver scripts/inject-runtime-config.mjs), no quemado en el código. */
   get nequiPhone(): string {
     return this.config()?.nequiPhone ?? '300 000 0000';
+  }
+
+  /** Llave Bre-B alternativa para transferir el pago — configurable vía PALOMA_BREB_KEY. */
+  get brebKey(): string {
+    return this.config()?.brebKey ?? '';
+  }
+
+  /** Nombre completo de quien recibe el pago, para que el comprador compare las iniciales del titular — configurable vía PALOMA_SELLER_FULL_NAME. */
+  get sellerFullName(): string {
+    return this.config()?.sellerFullName ?? '';
   }
 
   get<T>(path: string, params?: object): Observable<T> {

@@ -35,10 +35,23 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
               <p class="text-[13px] font-medium uppercase tracking-wide text-text-secondary">Tu número de rifa</p>
               <p class="mono-figure text-[48px] font-semibold leading-none text-brand-magenta">{{ order.raffleNumber }}</p>
             </div>
-            <div class="card-surface p-5">
-              <p class="section-title mb-2">Paga por Nequi</p>
-              <p class="text-[14px] leading-relaxed text-text-secondary">Transfiere <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span> al número <span class="mono-figure font-semibold text-text-primary">{{ nequiPhone }}</span> por Nequi. No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.</p>
-            </div>
+            @if (order.salesChannel === 'PRESENCIAL') {
+              <div class="card-surface p-5">
+                <p class="section-title mb-2">Paga en el stand</p>
+                <p class="text-[14px] leading-relaxed text-text-secondary">Acércate al stand y paga <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span> en efectivo con un vendedor autorizado — él o ella aprueba tu compra directamente ahí, no necesitas hacer nada en línea.</p>
+              </div>
+            } @else {
+              <div class="card-surface p-5">
+                <p class="section-title mb-2">Paga por Nequi o Bre-B</p>
+                <p class="text-[14px] leading-relaxed text-text-secondary">
+                  Transfiere <span class="mono-figure font-semibold text-text-primary">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                  al número <span class="mono-figure font-semibold text-text-primary">{{ nequiPhone }}</span> por Nequi
+                  @if (brebKey) { o a la llave Bre-B <span class="mono-figure font-semibold text-text-primary">{{ brebKey }}</span> }.
+                  @if (sellerFullName) { El titular es <span class="font-semibold text-text-primary">{{ sellerFullName }}</span> — verifica que las iniciales coincidan antes de transferir. }
+                  No necesitas enviar comprobante — el Administrador confirma el pago directamente en la app comparando el nombre y el monto.
+                </p>
+              </div>
+            }
           }
           @case (order.status === 'PAYMENT_REJECTED') {
             <p class="field-error text-[14px]">Tu pago no pudo verificarse. Tu número de rifa fue liberado. Si crees que es un error, contacta al equipo en el stand.</p>
@@ -73,6 +86,8 @@ export class OrderStatusPage {
   protected readonly order = signal<Order | null>(null);
   protected readonly errorMessage = signal('');
   protected readonly nequiPhone = this.apiClient.nequiPhone;
+  protected readonly brebKey = this.apiClient.brebKey;
+  protected readonly sellerFullName = this.apiClient.sellerFullName;
 
   constructor() {
     // Siempre se recarga desde la API (en vez de confiar en el estado de navegación) para
