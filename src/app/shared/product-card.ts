@@ -1,6 +1,6 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
-import { Product } from '../core/api.models';
+import { AddOnOption, Product } from '../core/api.models';
 import { Icon } from './icon';
 
 @Component({
@@ -22,8 +22,8 @@ import { Icon } from './icon';
       </div>
       <div>
         <p class="line-clamp-2 min-h-[44px] font-semibold text-[17px] leading-snug text-text-primary">{{ product().name }}</p>
-        <p class="mt-0.5 min-h-[16px] text-[12px] font-medium text-status-pendiente">
-          @if (product().stock > 0 && product().stock <= 5) { Quedan {{ product().stock }} unidades }
+        <p class="mt-0.5 min-h-[16px] text-[12px] font-medium" [class]="product().stock > 0 && product().stock <= 5 ? 'text-status-pendiente' : 'text-text-secondary'">
+          @if (product().stock > 0) { Quedan {{ product().stock }} unidades }
         </p>
         @if (product().giftable === false) {
           <p class="mt-0.5 text-[12px] font-medium text-text-secondary">Solo recogida en el stand — no se puede enviar</p>
@@ -61,8 +61,9 @@ import { Icon } from './icon';
             @for (option of group.options; track option.id) {
               <button
                 type="button"
-                class="flex flex-col items-center gap-1 rounded-[var(--radius-sm)] border-2 p-1.5 transition"
+                class="relative flex flex-col items-center gap-1 rounded-[var(--radius-sm)] border-2 p-1.5 transition disabled:cursor-not-allowed disabled:opacity-40"
                 [class]="option.id === selectedAddOnOptionId() ? 'border-brand-magenta bg-brand-magenta/5' : 'border-border-default hover:border-brand-magenta/40'"
+                [disabled]="isOptionOutOfStock(option)"
                 (click)="addOnOptionChange.emit(option.id)"
               >
                 <div class="flex size-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-base">
@@ -73,6 +74,7 @@ import { Icon } from './icon';
                   }
                 </div>
                 <span class="line-clamp-1 text-[11px] text-text-secondary">{{ option.name }}</span>
+                @if (isOptionOutOfStock(option)) { <span class="text-[9px] font-bold uppercase tracking-wide text-status-error">Agotado</span> }
               </button>
             }
           </div>
@@ -98,5 +100,12 @@ export class ProductCard {
     const selectedId = this.selectedAddOnOptionId();
     if (!group || !selectedId) return null;
     return group.options.find((option) => option.id === selectedId) ?? null;
+  }
+
+  // Una opción vinculada a un producto (ej. la paleta) comparte su stock con ese producto —
+  // si se agotó o se desactivó por ese lado, ya no se puede elegir como acompañante tampoco.
+  protected isOptionOutOfStock(option: AddOnOption): boolean {
+    const linked = option.linkedProduct;
+    return !!linked && (linked.stock <= 0 || !linked.isActive);
   }
 }

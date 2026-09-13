@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { ProductAddOnGroup } from '../core/api.models';
+import { Product, ProductAddOnGroup } from '../core/api.models';
 import { AddOnGroupsService } from '../core/addon-groups.service';
+import { ProductsService } from '../core/products.service';
 import { Icon } from '../shared/icon';
 
 @Component({
@@ -12,6 +13,7 @@ import { Icon } from '../shared/icon';
     <h1 class="page-title mb-1">Acompañantes</h1>
     <p class="page-lede mb-8">
       Catálogo reutilizable de acompañantes (ej. tipos de carta): créalos aquí una sola vez, con su imagen, y luego asócialos a los combos que quieras desde el Catálogo — sin tener que volver a crearlos por cada producto.
+      Si una opción también se vende sola (ej. la paleta), vincúlala a ese producto para que compartan un solo número de stock.
     </p>
 
     <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
@@ -46,6 +48,18 @@ import { Icon } from '../shared/icon';
                       <button type="button" class="text-[12px] text-text-secondary underline underline-offset-2" (click)="toggleOption(group, option)">
                         {{ option.isActive ? 'Desactivar' : 'Activar' }}
                       </button>
+                      <select
+                        class="field-input !h-7 max-w-[130px] text-[11px]"
+                        [ngModel]="option.linkedProductId ?? ''"
+                        [name]="'linked-' + option.id"
+                        (ngModelChange)="linkOption(option, $event)"
+                      >
+                        <option value="">Sin vincular</option>
+                        @for (product of products(); track product.id) { <option [value]="product.id">{{ product.name }}</option> }
+                      </select>
+                      @if (option.linkedProduct; as linked) {
+                        <span class="text-[11px] text-text-secondary">Stock compartido: {{ linked.stock }}</span>
+                      }
                     </li>
                   }
                 </ul>
@@ -81,8 +95,10 @@ import { Icon } from '../shared/icon';
 })
 export class AdminAddOnGroupsPage {
   private readonly addOnGroupsApi = inject(AddOnGroupsService);
+  private readonly productsApi = inject(ProductsService);
 
   protected readonly groups = signal<ProductAddOnGroup[]>([]);
+  protected readonly products = signal<Product[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected newGroupName = '';
@@ -90,6 +106,15 @@ export class AdminAddOnGroupsPage {
 
   constructor() {
     this.load();
+    this.loadProducts();
+  }
+
+  private async loadProducts(): Promise<void> {
+    try {
+      this.products.set(await firstValueFrom(this.productsApi.list()));
+    } catch {
+      // El selector de vinculación queda vacío si no hay permiso; el resto de la página sigue funcionando.
+    }
   }
 
   private async load(): Promise<void> {
@@ -131,6 +156,15 @@ export class AdminAddOnGroupsPage {
   protected async toggleOption(group: ProductAddOnGroup, option: ProductAddOnGroup['options'][number]): Promise<void> {
     await firstValueFrom(this.addOnGroupsApi.updateOption(option.id, { isActive: !option.isActive }));
     this.load();
+  }
+
+  protected async linkOption(option: ProductAddOnGroup['options'][number], productId: string): Promise<void> {
+    try {
+      await firstValueFrom(this.addOnGroupsApi.updateOption(option.id, { linkedProductId: productId || null }));
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible vincular el producto.');
+    }
   }
 
   protected async uploadOptionImage(optionId: string, event: Event): Promise<void> {

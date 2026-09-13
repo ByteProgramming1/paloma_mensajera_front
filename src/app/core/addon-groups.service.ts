@@ -12,7 +12,7 @@ export class AddOnGroupsService {
   createOption(groupId: string, name: string) {
     return this.api.post<AddOnOption>('/add-on-options', { groupId, name });
   }
-  updateOption(id: string, payload: { name?: string; isActive?: boolean }) {
+  updateOption(id: string, payload: { name?: string; isActive?: boolean; linkedProductId?: string | null }) {
     return this.api.patch<AddOnOption>(`/add-on-options/${id}`, payload);
   }
   uploadOptionImage(id: string, file: File) {
