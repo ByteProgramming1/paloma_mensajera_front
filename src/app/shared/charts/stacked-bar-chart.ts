@@ -138,10 +138,15 @@ export class StackedBarChart {
     return Math.max(2, slot * (1 - BAR_GAP_RATIO));
   });
 
+  // Centro de cada barra, dejando medio ancho de barra como margen a cada lado del área
+  // graficable — si no, la barra de los extremos queda centrada justo en PAD_LEFT/WIDTH-PAD_RIGHT
+  // y su mitad izquierda/derecha se monta encima de las etiquetas del eje Y o se sale del SVG.
   protected xOf(index: number): number {
     const count = this.points().length;
-    if (count <= 1) return (WIDTH + PAD_LEFT - PAD_RIGHT) / 2;
-    return PAD_LEFT + (index / (count - 1)) * (WIDTH - PAD_LEFT - PAD_RIGHT);
+    const usable = WIDTH - PAD_LEFT - PAD_RIGHT;
+    if (count <= 1) return PAD_LEFT + usable / 2;
+    const half = this.barWidth() / 2;
+    return PAD_LEFT + half + (index / (count - 1)) * (usable - this.barWidth());
   }
 
   protected yOf(value: number): number {
@@ -197,7 +202,11 @@ export class StackedBarChart {
     return String(Math.round(value));
   }
 
+  // Los puntos se agrupan por día en UTC (ver metrics-page.ts), así que hay que formatear
+  // también en UTC — si no, en cualquier zona horaria detrás de UTC (ej. Colombia, UTC-5) la
+  // medianoche UTC de un día cae en las 7pm del día anterior en hora local, y la etiqueta
+  // mostrada queda corrida un día hacia atrás respecto a los datos reales.
   protected formatDate(date: Date): string {
-    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   }
 }
