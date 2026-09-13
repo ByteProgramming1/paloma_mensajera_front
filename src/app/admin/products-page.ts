@@ -53,13 +53,21 @@ import { Icon } from '../shared/icon';
             <div class="grid grid-cols-2 gap-3">
               <label class="field">
                 <span class="field-label">Precio</span>
-                <input class="field-input" type="number" [ngModel]="product.price" (ngModelChange)="update(product, { price: $event })" />
+                <input class="field-input" type="number" [(ngModel)]="drafts[product.id].price" [name]="'price-' + product.id" />
               </label>
               <label class="field">
                 <span class="field-label">Stock</span>
-                <input class="field-input" type="number" [ngModel]="product.stock" (ngModelChange)="update(product, { stock: $event })" />
+                <input class="field-input" type="number" [(ngModel)]="drafts[product.id].stock" [name]="'stock-' + product.id" />
               </label>
             </div>
+            @if (isDirty(product)) {
+              <div class="flex items-center gap-2">
+                <button type="button" class="btn-primary !px-3 !py-1.5 text-[13px]" [disabled]="savingId() === product.id" (click)="saveDraft(product)">
+                  {{ savingId() === product.id ? 'Guardando…' : 'Guardar cambios' }}
+                </button>
+                <button type="button" class="btn-ghost !px-3 !py-1.5 text-[13px]" [disabled]="savingId() === product.id" (click)="discardDraft(product)">Descartar</button>
+              </div>
+            }
             <p class="mono-figure text-[15px] font-semibold text-brand-magenta">{{ product.price | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
             <button type="button" class="btn" [class]="product.isActive ? 'btn-secondary' : 'btn-primary'" (click)="update(product, { isActive: !product.isActive })">
               {{ product.isActive ? 'Desactivar' : 'Activar' }}
@@ -147,7 +155,11 @@ export class AdminProductsPage {
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal('');
   protected readonly uploadingId = signal<string | null>(null);
+  protected readonly savingId = signal<string | null>(null);
   protected readonly associateDrafts: Record<string, string> = {};
+  // Precio/stock se editan en borrador local y solo se mandan a la API al presionar "Guardar
+  // cambios" — antes se guardaba en cada tecleo, lo que hacía una petición por dígito escrito.
+  protected readonly drafts: Record<string, { price: number; stock: number }> = {};
 
   protected unassociatedGroups(product: Product) {
     const associatedIds = new Set((product.addOnGroups ?? []).map((group) => group.id));
@@ -170,7 +182,14 @@ export class AdminProductsPage {
   private async load(): Promise<void> {
     this.isLoading.set(true);
     try {
-      this.products.set(await firstValueFrom(this.productsApi.list()));
+      const products = await firstValueFrom(this.productsApi.list());
+      this.products.set(products);
+      // "??=" a propósito: si ya había un borrador (edición sin guardar todavía) para este
+      // producto, un reload disparado por OTRA acción (subir imagen, asociar un grupo, etc.)
+      // no debe perder lo que el admin ya había escrito.
+      for (const product of products) {
+        this.drafts[product.id] ??= { price: product.price, stock: product.stock };
+      }
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible cargar el catálogo.');
     } finally {
@@ -200,6 +219,30 @@ export class AdminProductsPage {
   protected async update(product: Product, changes: Partial<Product>): Promise<void> {
     await firstValueFrom(this.productsApi.update(product.id, changes));
     this.load();
+  }
+
+  protected isDirty(product: Product): boolean {
+    const draft = this.drafts[product.id];
+    return !!draft && (draft.price !== product.price || draft.stock !== product.stock);
+  }
+
+  protected async saveDraft(product: Product): Promise<void> {
+    const draft = this.drafts[product.id];
+    if (!draft) return;
+    this.errorMessage.set('');
+    this.savingId.set(product.id);
+    try {
+      await firstValueFrom(this.productsApi.update(product.id, { price: draft.price, stock: draft.stock }));
+      await this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible guardar los cambios.');
+    } finally {
+      this.savingId.set(null);
+    }
+  }
+
+  protected discardDraft(product: Product): void {
+    this.drafts[product.id] = { price: product.price, stock: product.stock };
   }
 
   protected async uploadImage(product: Product, event: Event): Promise<void> {
