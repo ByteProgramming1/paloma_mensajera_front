@@ -56,6 +56,12 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
           @case (order.status === 'PAYMENT_REJECTED') {
             <p class="field-error text-[14px]">Tu pago no pudo verificarse. Tu número de rifa fue liberado. Si crees que es un error, contacta al equipo en el stand.</p>
           }
+          @case (order.status === 'PAYMENT_VERIFIED') {
+            <p class="text-[15px] leading-relaxed text-text-secondary">
+              Tu pago fue verificado{{ order.raffleNumber ? ' — tu número es ' + order.raffleNumber : '' }}. Te avisaremos por Teams cuando tu regalo esté en camino.
+              @if (!order.selfPickup) { Además, te llegará un correo apenas se entregue el pedido a tu persona especial. }
+            </p>
+          }
           @default {
             <p class="text-[15px] leading-relaxed text-text-secondary">Tu pago fue verificado{{ order.raffleNumber ? ' — tu número es ' + order.raffleNumber : '' }}. Te avisaremos por Teams cuando tu regalo esté en camino.</p>
           }
