@@ -134,7 +134,7 @@ export interface MessageReview {
 export interface PaymentTransaction {
   id?: string;
   orderId?: string;
-  paymentMethod: 'NEQUI';
+  paymentMethod: 'NEQUI' | 'CASH';
   verified: boolean;
   verifiedByAdminId?: string | null;
   verifiedAt?: string | null;

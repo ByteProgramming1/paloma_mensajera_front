@@ -75,7 +75,7 @@ type Tab = 'pagos' | 'todos';
                 <p>
                   <span class="field-label block">Pago</span>
                   @if (order.payment) {
-                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod }}
+                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod === 'CASH' ? 'Efectivo en el stand' : 'Nequi / Bre-B' }}
                     @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
                   } @else { Sin registro de pago }
                 </p>
