@@ -92,6 +92,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
                 <label class="field">
                   <span class="field-label field-required">Correo institucional del destinatario</span>
                   <input class="field-input" name="recipientTeamsUser" type="email" required [(ngModel)]="form.recipientTeamsUser" placeholder="usuario@escuelaing.edu.co" />
+                  <span class="field-hint">Si no sabes cómo obtenerlo, a través del buscador de Teams lo puedes hacer.</span>
                 </label>
               </div>
             } @else {
