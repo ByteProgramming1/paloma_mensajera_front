@@ -103,18 +103,20 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
             }
           </section>
 
-          <section class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="section-title">Tu dedicatoria</h2>
-            <p class="field-hint">Es opcional. Si escribes algo, un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
-            <label class="field">
-              <span class="field-label">Dedicatoria (opcional)</span>
-              <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
-            </label>
-            <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
-              <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
-              Enviar como anónimo (el vendedor no verá tu nombre)
-            </label>
-          </section>
+          @if (!hasPickupOnlyItem()) {
+            <section class="card-surface flex flex-col gap-4 p-6">
+              <h2 class="section-title">Tu dedicatoria</h2>
+              <p class="field-hint">Es opcional. Si escribes algo, un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
+              <label class="field">
+                <span class="field-label">Dedicatoria (opcional)</span>
+                <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
+                <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
+                Enviar como anónimo (el vendedor no verá tu nombre)
+              </label>
+            </section>
+          }
 
           <section class="card-surface flex flex-col gap-3 p-6">
             <h2 class="section-title">¿Cómo vas a pagar?</h2>
@@ -205,7 +207,12 @@ export class CheckoutPage implements OnInit {
     // acá en vez de solo ocultar el botón, para cubrir el caso de que ya estuviera en false
     // antes de agregar ese producto al carrito.
     effect(() => {
-      if (this.hasPickupOnlyItem()) this.form.selfPickup = true;
+      if (this.hasPickupOnlyItem()) {
+        this.form.selfPickup = true;
+        // No hay destinatario para escribirle, así que tampoco tiene sentido pedir dedicatoria.
+        this.form.letterContent = '';
+        this.form.isAnonymous = false;
+      }
     });
   }
 
