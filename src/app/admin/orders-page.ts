@@ -9,6 +9,7 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
 import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
+import { ToastService } from '../shared/toast.service';
 
 const PAGE_SIZE = 10;
 // Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
@@ -107,6 +108,7 @@ type Tab = 'pagos' | 'todos';
 })
 export class AdminOrdersPage {
   private readonly ordersApi = inject(OrdersService);
+  private readonly toast = inject(ToastService);
   protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
 
   protected readonly tab = signal<Tab>('pagos');
@@ -156,6 +158,7 @@ export class AdminOrdersPage {
 
   protected async verifyPayment(order: Order, verified: boolean): Promise<void> {
     await firstValueFrom(this.ordersApi.verifyPayment(order.id, verified, this.notesDrafts[order.id]));
+    this.toast.success(verified ? 'Pago confirmado.' : 'Pago rechazado.');
     this.load();
   }
 

@@ -2,10 +2,11 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { TopNav } from './top-nav';
 import { FooterComponent } from '../footer/footer';
+import { Toast } from './toast';
 
 @Component({
   selector: 'app-shell',
-  imports: [TopNav, RouterOutlet, FooterComponent],
+  imports: [TopNav, RouterOutlet, FooterComponent, Toast],
   template: `
     <div class="app-shell bg-bg-base">
       <app-top-nav />
@@ -14,6 +15,7 @@ import { FooterComponent } from '../footer/footer';
       </main>
       <app-footer />
     </div>
+    <app-toast />
   `,
 })
 export class AppShell {}
