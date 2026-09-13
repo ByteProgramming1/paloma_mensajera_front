@@ -6,6 +6,8 @@ import { StaffRole, StaffUser, UserRole } from '../core/api.models';
 import { AdminService } from '../core/admin.service';
 import { Icon } from '../shared/icon';
 
+const RESET_CONFIRM_WORD = 'BORRAR';
+
 @Component({
   selector: 'app-admin-users-page',
   imports: [FormsModule, DatePipe, Icon],
@@ -90,6 +92,31 @@ import { Icon } from '../shared/icon';
           </form>
           @if (tempMessage()) { <p class="field-hint mt-3">{{ tempMessage() }}</p> }
         </section>
+
+        <section class="card-surface mt-6 flex flex-col gap-4 border border-status-error/30 p-6">
+          <div>
+            <h2 class="section-title text-status-error">Zona de peligro</h2>
+            <p class="field-hint">Estas acciones son irreversibles y borran datos en producción. Escribe "{{ RESET_CONFIRM_WORD }}" para habilitar cada botón.</p>
+          </div>
+
+          <div class="flex flex-col gap-2 border-t border-border-soft pt-4">
+            <p class="text-[13px] font-medium text-text-primary">Borrar todo excepto el admin por defecto y los combos</p>
+            <input class="field-input" [(ngModel)]="resetKeepCombosPhrase" name="resetKeepCombosPhrase" [placeholder]="'Escribe ' + RESET_CONFIRM_WORD" />
+            <button type="button" class="btn-secondary !border-status-error !text-status-error" [disabled]="resetKeepCombosPhrase.trim() !== RESET_CONFIRM_WORD || resetInProgress()" (click)="confirmResetKeepCombos()">
+              Borrar todo, conservar combos
+            </button>
+          </div>
+
+          <div class="flex flex-col gap-2 border-t border-border-soft pt-4">
+            <p class="text-[13px] font-medium text-text-primary">Borrar absolutamente todo excepto el admin por defecto</p>
+            <input class="field-input" [(ngModel)]="resetFullPhrase" name="resetFullPhrase" [placeholder]="'Escribe ' + RESET_CONFIRM_WORD" />
+            <button type="button" class="btn-secondary !border-status-error !text-status-error" [disabled]="resetFullPhrase.trim() !== RESET_CONFIRM_WORD || resetInProgress()" (click)="confirmResetFull()">
+              Borrar todo, sin conservar nada
+            </button>
+          </div>
+
+          @if (resetError()) { <p class="field-error">{{ resetError() }}</p> }
+        </section>
       </aside>
     </div>
 
@@ -105,6 +132,11 @@ import { Icon } from '../shared/icon';
 })
 export class AdminUsersPage {
   private readonly adminApi = inject(AdminService);
+  protected readonly RESET_CONFIRM_WORD = RESET_CONFIRM_WORD;
+  protected resetKeepCombosPhrase = '';
+  protected resetFullPhrase = '';
+  protected readonly resetInProgress = signal(false);
+  protected readonly resetError = signal('');
 
   protected readonly users = signal<StaffUser[]>([]);
   protected readonly isLoading = signal(true);
@@ -200,6 +232,32 @@ export class AdminUsersPage {
     clearTimeout(this.successTimeout);
     this.successMessage.set(message);
     this.successTimeout = setTimeout(() => this.successMessage.set(''), 3000);
+  }
+
+  protected async confirmResetKeepCombos(): Promise<void> {
+    if (!confirm('Esto borra TODA la base de datos (pedidos, pagos, rifa, usuarios de staff, acompañantes) y solo conserva la cuenta admin por defecto y los productos tipo combo. ¿Confirmas?')) return;
+    await this.runReset(() => this.adminApi.resetKeepCombos());
+    this.resetKeepCombosPhrase = '';
+  }
+
+  protected async confirmResetFull(): Promise<void> {
+    if (!confirm('Esto borra ABSOLUTAMENTE TODO (incluyendo combos y acompañantes) y solo conserva el correo/contraseña del admin por defecto. ¿Confirmas?')) return;
+    await this.runReset(() => this.adminApi.resetFull());
+    this.resetFullPhrase = '';
+  }
+
+  private async runReset(action: () => ReturnType<AdminService['resetFull']>): Promise<void> {
+    this.resetError.set('');
+    this.resetInProgress.set(true);
+    try {
+      await firstValueFrom(action());
+      this.announceSuccess('Base de datos restablecida.');
+      await this.load();
+    } catch (error) {
+      this.resetError.set(error instanceof Error ? error.message : 'No fue posible restablecer la base de datos.');
+    } finally {
+      this.resetInProgress.set(false);
+    }
   }
 
   protected async createTemporary(): Promise<void> {

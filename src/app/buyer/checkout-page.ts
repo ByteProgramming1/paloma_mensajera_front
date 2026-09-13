@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
@@ -65,10 +65,14 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 
           <section class="card-surface flex flex-col gap-4 p-6">
             <h2 class="section-title">¿Quién recibe el regalo?</h2>
-            <div class="flex gap-2">
-              <button type="button" class="btn" [class]="!form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = false">Es para alguien más</button>
-              <button type="button" class="btn" [class]="form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = true">Yo mismo lo recojo</button>
-            </div>
+            @if (hasPickupOnlyItem()) {
+              <p class="field-hint">Tu carrito incluye un producto que solo se puede recoger en el stand — no se puede enviar a otra persona, así que este pedido queda como autorrecogida.</p>
+            } @else {
+              <div class="flex gap-2">
+                <button type="button" class="btn" [class]="!form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = false">Es para alguien más</button>
+                <button type="button" class="btn" [class]="form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = true">Yo mismo lo recojo</button>
+              </div>
+            }
 
             @if (!form.selfPickup) {
               <div class="grid gap-4 sm:grid-cols-2">
@@ -100,10 +104,10 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 
           <section class="card-surface flex flex-col gap-4 p-6">
             <h2 class="section-title">Tu dedicatoria</h2>
-            <p class="field-hint">Un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
+            <p class="field-hint">Es opcional. Si escribes algo, un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
             <label class="field">
-              <span class="field-label field-required">Dedicatoria</span>
-              <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" required [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje…"></textarea>
+              <span class="field-label">Dedicatoria (opcional)</span>
+              <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
             </label>
             <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
               <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
@@ -112,11 +116,18 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
           </section>
 
           <section class="card-surface flex flex-col gap-3 p-6">
-            <h2 class="section-title">Canal de venta</h2>
+            <h2 class="section-title">¿Cómo vas a pagar?</h2>
             <div class="flex gap-2">
-              <button type="button" class="btn" [class]="form.salesChannel === 'ONLINE' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'ONLINE'">En línea</button>
-              <button type="button" class="btn" [class]="form.salesChannel === 'PRESENCIAL' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'PRESENCIAL'">Presencial en stand</button>
+              <button type="button" class="btn" [class]="form.salesChannel === 'ONLINE' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'ONLINE'">Pago digital (Nequi / Bre-B)</button>
+              <button type="button" class="btn" [class]="form.salesChannel === 'PRESENCIAL' ? 'btn-primary' : 'btn-secondary'" (click)="form.salesChannel = 'PRESENCIAL'">Pago en el stand</button>
             </div>
+            <p class="field-hint">
+              @if (form.salesChannel === 'ONLINE') {
+                Al enviar el pedido te mostraremos el número de Nequi y la llave Bre-B para transferir.
+              } @else {
+                Un vendedor autorizado en el stand recibe tu pago en efectivo y aprueba la compra ahí mismo — no necesitas pagar en línea.
+              }
+            </p>
           </section>
 
           @if (errorMessage()) { <p class="field-error" role="alert">{{ errorMessage() }}</p> }
@@ -184,6 +195,18 @@ export class CheckoutPage implements OnInit {
     isAnonymous: false,
     salesChannel: 'ONLINE',
   };
+
+  protected readonly hasPickupOnlyItem = computed(() =>
+    this.cart.lines().some((line) => line.product.giftable === false));
+
+  constructor() {
+    // Un producto no regalable (ej. la paleta vendida sola) obliga autorrecogida — se fuerza
+    // acá en vez de solo ocultar el botón, para cubrir el caso de que ya estuviera en false
+    // antes de agregar ese producto al carrito.
+    effect(() => {
+      if (this.hasPickupOnlyItem()) this.form.selfPickup = true;
+    });
+  }
 
   ngOnInit(): void {
     const user = this.auth.session()?.user;

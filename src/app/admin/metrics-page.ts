@@ -56,6 +56,19 @@ const STATUS_LABELS: Record<string, string> = {
         </div>
       </div>
 
+      <div class="mb-8 grid gap-4 sm:grid-cols-2">
+        <div class="card-surface p-5">
+          <p class="field-label">Caja física (pagos en stand, verificados)</p>
+          <p class="mono-figure mt-1 text-[26px] font-semibold leading-none text-text-primary">{{ verifiedByChannel().PRESENCIAL | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+          <p class="field-hint mt-1">Esto es lo que debería haber en efectivo en el stand.</p>
+        </div>
+        <div class="card-surface p-5">
+          <p class="field-label">Caja digital (Nequi / Bre-B, verificados)</p>
+          <p class="mono-figure mt-1 text-[26px] font-semibold leading-none text-text-primary">{{ verifiedByChannel().ONLINE | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+          <p class="field-hint mt-1">Esto es lo que debería haber llegado a Nequi/Bre-B.</p>
+        </div>
+      </div>
+
       <div class="mb-8 grid gap-6 lg:grid-cols-2">
         <section class="card-surface p-6">
           <app-bar-chart title="Pedidos por estado" [rows]="statusChartRows()" [formatter]="intFormatter" labelHeader="Estado" valueHeader="Pedidos" />
@@ -251,6 +264,15 @@ export class AdminMetricsPage {
     return [...counts.entries()]
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value);
+  });
+
+  protected readonly verifiedByChannel = computed<Record<SalesChannel, number>>(() => {
+    const totals: Record<SalesChannel, number> = { ONLINE: 0, PRESENCIAL: 0 };
+    for (const order of this.allOrders()) {
+      if (order.payment?.verified !== true || order.status === 'CANCELLED') continue;
+      totals[order.salesChannel] += order.totalAmount;
+    }
+    return totals;
   });
 
   protected readonly revenueSeries = computed<LineChartPoint[]>(() => {

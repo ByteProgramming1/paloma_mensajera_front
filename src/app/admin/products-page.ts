@@ -64,6 +64,13 @@ import { Icon } from '../shared/icon';
             <button type="button" class="btn" [class]="product.isActive ? 'btn-secondary' : 'btn-primary'" (click)="update(product, { isActive: !product.isActive })">
               {{ product.isActive ? 'Desactivar' : 'Activar' }}
             </button>
+            <label class="flex cursor-pointer items-center gap-2 text-[13px] text-text-secondary">
+              <input type="checkbox" class="accent-brand-magenta size-4" [ngModel]="product.giftable !== false" (ngModelChange)="update(product, { giftable: $event })" [name]="'giftable-' + product.id" />
+              Se puede enviar a otra persona
+            </label>
+            @if (product.giftable === false) {
+              <p class="field-hint">El comprador solo podrá recogerlo él mismo en el stand.</p>
+            }
 
             @if (product.type === 'COMBO') {
               <div class="mt-2 flex flex-col gap-3 border-t border-border-soft pt-3">
@@ -118,6 +125,10 @@ import { Icon } from '../shared/icon';
               <span class="field-label field-required">Stock disponible</span>
               <input class="field-input" type="number" min="0" required [(ngModel)]="draft.stock" name="stock" />
             </label>
+            <label class="flex cursor-pointer items-center gap-2 text-[13px] text-text-secondary">
+              <input type="checkbox" class="accent-brand-magenta size-4" [(ngModel)]="draft.giftable" name="giftable" />
+              Se puede enviar a otra persona
+            </label>
             <button type="submit" class="btn-primary">Agregar al catálogo</button>
           </form>
           <p class="field-hint mt-3">La imagen se sube en un segundo paso, desde la tarjeta del producto a la izquierda (el archivo se guarda en almacenamiento de objetos, no en la base de datos).</p>
@@ -143,11 +154,12 @@ export class AdminProductsPage {
     return this.allGroups().filter((group) => !associatedIds.has(group.id));
   }
 
-  protected draft: { name: string; type: ProductType; price: number; stock: number } = {
+  protected draft: { name: string; type: ProductType; price: number; stock: number; giftable: boolean } = {
     name: '',
     type: 'COMBO',
     price: 0,
     stock: 0,
+    giftable: true,
   };
 
   constructor() {
@@ -178,7 +190,7 @@ export class AdminProductsPage {
     this.errorMessage.set('');
     try {
       await firstValueFrom(this.productsApi.create({ ...this.draft, isActive: true }));
-      this.draft = { name: '', type: 'COMBO', price: 0, stock: 0 };
+      this.draft = { name: '', type: 'COMBO', price: 0, stock: 0, giftable: true };
       this.load();
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible crear el producto.');
