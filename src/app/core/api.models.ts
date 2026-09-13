@@ -137,6 +137,7 @@ export interface PaymentTransaction {
   paymentMethod: 'NEQUI' | 'CASH';
   verified: boolean;
   verifiedByAdminId?: string | null;
+  verifiedByName?: string | null;
   verifiedAt?: string | null;
   verificationNotes?: string | null;
 }

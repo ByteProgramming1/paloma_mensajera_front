@@ -8,7 +8,7 @@ import { OrdersService } from '../core/orders.service';
 import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { BarChart, BarChartRow } from '../shared/charts/bar-chart';
-import { LineChart, LineChartPoint } from '../shared/charts/line-chart';
+import { StackedBarChart, StackedBarPoint } from '../shared/charts/stacked-bar-chart';
 import { Pagination } from '../shared/pagination';
 
 const PAGE_SIZE = 25;
@@ -34,7 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-admin-metrics-page',
-  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, LineChart, Pagination],
+  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, StackedBarChart, Pagination],
   template: `
     <h1 class="page-title mb-1">Métricas</h1>
     <p class="page-lede mb-8">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
@@ -81,8 +81,24 @@ const STATUS_LABELS: Record<string, string> = {
       </div>
 
       <section class="card-surface mb-8 p-6">
-        <app-line-chart title="Ingresos por día (pago verificado)" [points]="revenueSeries()" [formatter]="copFormatter" />
+        <app-stacked-bar-chart
+          title="Ingresos por día — en línea vs. presencial (pago verificado)"
+          [points]="revenueByChannelSeries()"
+          [formatter]="copFormatter"
+          labelA="En línea"
+          labelB="Presencial"
+          colorA="var(--brand-magenta)"
+          colorB="var(--status-pagado)"
+        />
+        <p class="field-hint mt-4">La altura total de cada barra es el ingreso combinado del día — útil para cuadrar caja física contra lo recogido en efectivo.</p>
       </section>
+
+      @if (cashByVerifier().length > 0) {
+        <section class="card-surface mb-8 p-6">
+          <app-bar-chart title="Efectivo presencial por vendedor (verificado)" [rows]="cashByVerifier()" [formatter]="copFormatter" labelHeader="Vendedor" valueHeader="Monto" />
+          <p class="field-hint mt-4">Si la caja física no cuadra, aquí puedes ver cuánto aprobó cada vendedor para ubicar la diferencia.</p>
+        </section>
+      }
     } @else if (!errorMessage()) {
       <p class="text-text-secondary">Cargando métricas…</p>
     }
@@ -172,7 +188,7 @@ const STATUS_LABELS: Record<string, string> = {
           <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
         </div>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
-          <table class="w-full min-w-[1520px] border-collapse text-[13px]">
+          <table class="w-full min-w-[1680px] border-collapse text-[13px]">
             <thead>
               <tr class="bg-bg-base text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
                 <th class="p-2">Código</th>
@@ -190,6 +206,7 @@ const STATUS_LABELS: Record<string, string> = {
                 <th class="p-2">Anónimo</th>
                 <th class="p-2">Productos</th>
                 <th class="p-2">Total</th>
+                <th class="p-2">Verificado por</th>
                 <th class="p-2">N° rifa</th>
                 <th class="p-2">Dedicatoria</th>
               </tr>
@@ -216,6 +233,7 @@ const STATUS_LABELS: Record<string, string> = {
                     }
                   </td>
                   <td class="mono-figure p-2">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
+                  <td class="p-2">{{ order.payment?.verifiedByName ?? '—' }}</td>
                   <td class="mono-figure p-2">{{ order.raffleNumber ?? '—' }}</td>
                   <td class="max-w-[260px] p-2" [title]="order.letterContent">{{ order.letterContent }}</td>
                 </tr>
@@ -275,25 +293,42 @@ export class AdminMetricsPage {
     return totals;
   });
 
-  protected readonly revenueSeries = computed<LineChartPoint[]>(() => {
+  protected readonly revenueByChannelSeries = computed<StackedBarPoint[]>(() => {
     const verified = this.allOrders().filter((order) => order.payment?.verified === true && order.status !== 'CANCELLED');
     if (verified.length === 0) return [];
 
-    const byDay = new Map<string, number>();
+    const byDay = new Map<string, { online: number; presencial: number }>();
     for (const order of verified) {
       const key = new Date(order.createdAt).toISOString().slice(0, 10);
-      byDay.set(key, (byDay.get(key) ?? 0) + order.totalAmount);
+      const entry = byDay.get(key) ?? { online: 0, presencial: 0 };
+      if (order.salesChannel === 'ONLINE') entry.online += order.totalAmount;
+      else entry.presencial += order.totalAmount;
+      byDay.set(key, entry);
     }
 
     const days = [...byDay.keys()].sort();
     const start = new Date(days[0]);
     const end = new Date(days[days.length - 1]);
-    const points: LineChartPoint[] = [];
+    const points: StackedBarPoint[] = [];
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const key = d.toISOString().slice(0, 10);
-      points.push({ date: new Date(d), value: byDay.get(key) ?? 0 });
+      const entry = byDay.get(key) ?? { online: 0, presencial: 0 };
+      points.push({ date: new Date(d), a: entry.online, b: entry.presencial });
     }
     return points;
+  });
+
+  // Por si la caja física se descuadra: cuánto efectivo aprobó cada vendedor, para saber a quién preguntarle.
+  protected readonly cashByVerifier = computed<BarChartRow[]>(() => {
+    const totals = new Map<string, number>();
+    for (const order of this.allOrders()) {
+      if (order.payment?.verified !== true || order.payment.paymentMethod !== 'CASH') continue;
+      const name = order.payment.verifiedByName ?? 'Sin identificar';
+      totals.set(name, (totals.get(name) ?? 0) + order.totalAmount);
+    }
+    return [...totals.entries()]
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
   });
 
   protected readonly search = signal('');
