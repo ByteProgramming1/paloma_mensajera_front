@@ -45,6 +45,10 @@ export interface AddOnOption {
   name: string;
   imageUrl?: string | null;
   isActive: boolean;
+  // Si la opción "es" un producto vendible por separado (ej. la paleta), comparten un solo
+  // stock — ver linkedProduct para el stock/estado actual de ese producto.
+  linkedProductId?: string | null;
+  linkedProduct?: { stock: number; isActive: boolean } | null;
 }
 
 export interface ProductAddOnGroup {
