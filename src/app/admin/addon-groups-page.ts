@@ -30,9 +30,9 @@ import { Icon } from '../shared/icon';
             @for (group of groups(); track group.id) {
               <li class="card-surface flex flex-col gap-4 p-6">
                 <h2 class="section-title">{{ group.name }}</h2>
-                <ul class="flex flex-wrap gap-3">
+                <ul class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3">
                   @for (option of group.options; track option.id) {
-                    <li class="flex flex-col items-center gap-2 rounded-[var(--radius-sm)] bg-bg-base p-3" [class.opacity-50]="!option.isActive">
+                    <li class="flex flex-col items-center gap-2 rounded-[var(--radius-sm)] bg-bg-base p-3 text-center" [class.opacity-50]="!option.isActive">
                       <div class="flex size-16 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
                         @if (option.imageUrl) {
                           <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-contain" />
@@ -40,16 +40,19 @@ import { Icon } from '../shared/icon';
                           <app-icon name="envelope" [size]="20" [strokeWidth]="1.5" class="text-brand-magenta/40" />
                         }
                       </div>
-                      <span class="max-w-[90px] truncate text-[12px] font-medium text-text-primary">{{ option.name }}</span>
-                      <label class="cursor-pointer text-[12px] text-brand-magenta underline underline-offset-2">
-                        Foto
-                        <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" (change)="uploadOptionImage(option.id, $event)" />
-                      </label>
-                      <button type="button" class="text-[12px] text-text-secondary underline underline-offset-2" (click)="toggleOption(group, option)">
-                        {{ option.isActive ? 'Desactivar' : 'Activar' }}
-                      </button>
+                      <span class="w-full truncate text-[12px] font-medium text-text-primary" [title]="option.name">{{ option.name }}</span>
+                      <div class="flex items-center justify-center gap-2">
+                        <label class="cursor-pointer text-[12px] text-brand-magenta underline underline-offset-2">
+                          Foto
+                          <input type="file" class="hidden" accept="image/png,image/jpeg,image/webp" (change)="uploadOptionImage(option.id, $event)" />
+                        </label>
+                        <span class="text-[12px] text-border-default">·</span>
+                        <button type="button" class="text-[12px] text-text-secondary underline underline-offset-2" (click)="toggleOption(group, option)">
+                          {{ option.isActive ? 'Desactivar' : 'Activar' }}
+                        </button>
+                      </div>
                       <select
-                        class="field-input !h-7 max-w-[130px] text-[11px]"
+                        class="field-input !h-7 w-full text-[11px]"
                         [ngModel]="option.linkedProductId ?? ''"
                         [name]="'linked-' + option.id"
                         (ngModelChange)="linkOption(option, $event)"
@@ -57,9 +60,9 @@ import { Icon } from '../shared/icon';
                         <option value="">Sin vincular</option>
                         @for (product of products(); track product.id) { <option [value]="product.id">{{ product.name }}</option> }
                       </select>
-                      @if (option.linkedProduct; as linked) {
-                        <span class="text-[11px] text-text-secondary">Stock compartido: {{ linked.stock }}</span>
-                      }
+                      <span class="text-[11px] text-text-secondary">
+                        @if (option.linkedProduct; as linked) { Stock compartido: {{ linked.stock }} } @else { &nbsp; }
+                      </span>
                     </li>
                   }
                 </ul>
