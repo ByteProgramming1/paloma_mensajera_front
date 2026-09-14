@@ -113,6 +113,32 @@ import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmpt
             />
           }
 
+          <section class="card-surface flex flex-col gap-4 p-6">
+            <h2 class="section-title">Confirma antes de pagar</h2>
+            <p class="field-hint">Revisa que los datos y el modo de envío de cada dedicatoria sean correctos — después de pagar ya no podrás editarlos tú mismo.</p>
+            @for (group of recipientGroups; let gi = $index; track gi) {
+              <div class="rounded-[var(--radius-sm)] bg-bg-base p-4">
+                @if (recipientGroups.length > 1) { <p class="field-label mb-1">Destinatario {{ gi + 1 }}</p> }
+                @if (groupForcedPickup(gi) || group.selfPickup) {
+                  <p class="text-[14px] text-text-primary">Autorrecogida — lo recoges tú mismo en el stand.</p>
+                } @else {
+                  <p class="text-[14px] text-text-primary">Para: <strong>{{ group.recipientFullName || '(falta el nombre)' }}</strong></p>
+                  <p class="mt-1 text-[13px] text-text-secondary">
+                    Se enviará
+                    @if (group.isAnonymous) {
+                      <strong class="text-brand-magenta">en modo incógnito (anónimo)</strong> — el vendedor no verá tu nombre.
+                    } @else {
+                      <strong>con tu nombre</strong> — el vendedor verá quién lo envía.
+                    }
+                  </p>
+                  @if (group.letterContent) {
+                    <p class="mt-2 rounded bg-bg-surface-elevated p-2 text-[13px] leading-relaxed whitespace-pre-wrap text-text-secondary italic">"{{ group.letterContent }}"</p>
+                  }
+                }
+              </div>
+            }
+          </section>
+
           <section class="card-surface flex flex-col gap-3 p-6">
             <h2 class="section-title">¿Cómo vas a pagar?</h2>
             <div class="flex gap-2">
