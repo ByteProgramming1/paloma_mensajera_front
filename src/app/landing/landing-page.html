@@ -80,15 +80,19 @@
         <button type="submit" class="auth-button" [disabled]="isLoading()">
           {{ isLoading() ? 'Conectando...' : authMode() === 'login' ? 'Ingresar' : 'Solicitar código' }}
         </button>
-        <button type="button" class="mode-action" (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')">
-          {{ authMode() === 'login' ? '¿Aún no tienes cuenta? Regístrate' : 'Ya tengo una cuenta, ingresar' }}
-        </button>
         @if (authMode() === 'login') {
           <button type="button" class="back-action" (click)="setAuthMode('forgot')">¿Olvidaste tu contraseña?</button>
         }
         @if (authMode() === 'register') {
           <button type="button" class="back-action" (click)="setAuthMode('verify')">Ya tengo un código de verificación</button>
         }
+        <div class="mode-switch">
+          <span class="mode-switch-divider" aria-hidden="true"><span>o</span></span>
+          <p class="mode-switch-label">{{ authMode() === 'login' ? '¿Primera vez por aquí?' : '¿Ya tienes cuenta?' }}</p>
+          <button type="button" class="mode-action" (click)="setAuthMode(authMode() === 'login' ? 'register' : 'login')">
+            {{ authMode() === 'login' ? 'Crear una cuenta nueva' : 'Ingresar con mi cuenta' }}
+          </button>
+        </div>
       }
       </form>
       <div class="notice" role="note"><span class="info-icon" aria-hidden="true">i</span><span>Usa un correo institucional autorizado. El código es temporal y no debes compartirlo.</span></div>

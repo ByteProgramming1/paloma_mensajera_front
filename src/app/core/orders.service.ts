@@ -32,8 +32,10 @@ export class OrdersService {
     return this.api.patch<CreateOrderGroupResponse>(`/orders/groups/${groupId}/verify-payment`, { verified, verificationNotes });
   }
 
+  // Devuelve el MessageReview actualizado (igual que verify-message), no el Order completo —
+  // quien llame esto debe recargar el pedido aparte si necesita el estado actualizado.
   resubmitMessage(id: string, letterContent: string, isAnonymous: boolean) {
-    return this.api.patch<Order>(`/orders/${id}/resubmit-message`, { letterContent, isAnonymous });
+    return this.api.patch<unknown>(`/orders/${id}/resubmit-message`, { letterContent, isAnonymous });
   }
 
   updateDeliveryStatus(id: string, status: DeliveryStatus, details?: { receivedBy?: string; teamsConfirmationLog?: string; notes?: string }) {

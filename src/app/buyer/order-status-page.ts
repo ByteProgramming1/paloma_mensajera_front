@@ -144,8 +144,10 @@ export class OrderStatusPage {
     this.resubmitError.set('');
     this.isResubmitting.set(true);
     try {
-      const order = await firstValueFrom(this.ordersApi.resubmitMessage(orderId, this.resubmitLetterContent, this.resubmitIsAnonymous));
-      this.order.set(order);
+      // El endpoint devuelve el MessageReview actualizado, no el Order completo (igual que
+      // verify-message) — se recarga el pedido completo desde la API en vez de usar la respuesta.
+      await firstValueFrom(this.ordersApi.resubmitMessage(orderId, this.resubmitLetterContent, this.resubmitIsAnonymous));
+      await this.loadFromApi();
       this.toast.success('Dedicatoria reenviada para revisión.');
     } catch (error) {
       this.resubmitError.set(error instanceof Error ? error.message : 'No fue posible reenviar la dedicatoria.');

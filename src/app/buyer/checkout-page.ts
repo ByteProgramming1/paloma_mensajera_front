@@ -27,6 +27,11 @@ import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmpt
         <form class="flex flex-col gap-8" (ngSubmit)="submit()">
           <section class="card-surface flex flex-col gap-4 p-6">
             <h2 class="section-title">Tus datos</h2>
+            @if (buyerNameMismatch()) {
+              <p class="field-hint rounded-[var(--radius-sm)] bg-status-pendiente/10 p-3 text-status-pendiente">
+                Este pedido va a quedar con tu cuenta ({{ auth.session()!.user.email }}) pero un nombre distinto al de tu perfil ({{ auth.session()!.user.name }}). Si estás comprando para ti, corrige el nombre; si le haces el favor de comprar a otra persona, tu nombre real va aquí en "Tus datos" y el de ella en "¿Quién recibe el regalo?".
+              </p>
+            }
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="field">
                 <span class="field-label field-required">Nombre completo</span>
@@ -208,6 +213,16 @@ export class CheckoutPage implements OnInit {
     }
   }
 
+  // El correo queda bloqueado a la cuenta logueada, pero el nombre es editable — si alguien
+  // presta su cuenta para comprarle a un amigo y escribe el nombre del amigo aquí, el pedido
+  // queda con buyerEmail de una persona y buyerFullName de otra. No lo bloqueamos (a veces es
+  // intencional, ej. alguien comprando "de parte de" otra persona con su misma cuenta), pero se
+  // avisa para que no sea un error accidental por pereza de crear una cuenta nueva.
+  protected buyerNameMismatch(): boolean {
+    const user = this.auth.session()?.user;
+    return !!user && this.form.buyerFullName.trim() !== '' && this.form.buyerFullName.trim() !== user.name;
+  }
+
   protected linesForGroup(index: number): CartLine[] {
     return this.cart.lines().filter((line) => (this.lineAssignments[line.product.id] ?? 0) === index);
   }
@@ -245,7 +260,12 @@ export class CheckoutPage implements OnInit {
   }
 
   private buildRecipientDto(group: RecipientGroupDraft, index: number): CreateOrderRecipientDto {
-    const selfPickup = this.groupForcedPickup(index) || group.selfPickup;
+    // La dedicatoria solo se limpia cuando la autorrecogida es FORZADA (producto no regalable) —
+    // si el comprador elige autorrecogida por su cuenta con un carrito regalable, la dedicatoria
+    // que haya escrito igual se envía (igual que el comportamiento de siempre, de un solo
+    // destinatario: forzar y limpiar son cosas distintas).
+    const forced = this.groupForcedPickup(index);
+    const selfPickup = forced || group.selfPickup;
     return {
       selfPickup,
       ...(selfPickup
@@ -256,8 +276,8 @@ export class CheckoutPage implements OnInit {
         quantity: line.quantity,
         ...(line.selectedAddOnOptionId ? { selectedAddOnOptionId: line.selectedAddOnOptionId } : {}),
       })),
-      letterContent: selfPickup ? '' : group.letterContent,
-      isAnonymous: selfPickup ? false : group.isAnonymous,
+      letterContent: forced ? '' : group.letterContent,
+      isAnonymous: forced ? false : group.isAnonymous,
     };
   }
 

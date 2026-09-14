@@ -9,6 +9,7 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { BarChart, BarChartRow } from '../shared/charts/bar-chart';
 import { StackedBarChart, StackedBarPoint } from '../shared/charts/stacked-bar-chart';
+import { AreaChart } from '../shared/charts/area-chart';
 import { Pagination } from '../shared/pagination';
 
 const PAGE_SIZE = 25;
@@ -34,7 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-admin-metrics-page',
-  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, StackedBarChart, Pagination],
+  imports: [CurrencyPipe, DatePipe, FormsModule, OrderStatusBadge, BarChart, StackedBarChart, AreaChart, Pagination],
   template: `
     <h1 class="page-title mb-1">Métricas</h1>
     <p class="page-lede mb-8">Ninguna revisión (mensajes ni pagos) tiene filtro automático que reduzca el volumen — este panel ayuda a ver dónde se está acumulando la cola.</p>
@@ -104,7 +105,7 @@ const STATUS_LABELS: Record<string, string> = {
     }
 
     <section class="card-surface mt-8 p-6">
-      <app-bar-chart title="Horas pico — pedidos por hora del día" [rows]="peakHoursChartRows()" [formatter]="intFormatter" labelHeader="Hora" valueHeader="Pedidos" />
+      <app-area-chart title="Horas pico — pedidos por hora del día" [points]="peakHoursChartRows()" [formatter]="intFormatter" labelHeader="Hora" valueHeader="Pedidos" />
       <p class="field-hint mt-4">Cuenta todos los pedidos recibidos (sin importar su estado), agrupados por la hora del día en que se crearon — útil para saber cuándo reforzar el equipo en el stand.</p>
     </section>
 
@@ -193,7 +194,7 @@ const STATUS_LABELS: Record<string, string> = {
           <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
         </div>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
-          <table class="w-full min-w-[1680px] border-collapse text-[13px]">
+          <table class="w-full min-w-[1880px] border-collapse text-[13px]">
             <thead>
               <tr class="bg-bg-base text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
                 <th class="p-2">Código</th>
@@ -212,6 +213,7 @@ const STATUS_LABELS: Record<string, string> = {
                 <th class="p-2">Productos</th>
                 <th class="p-2">Total</th>
                 <th class="p-2">Verificado por</th>
+                <th class="p-2">Notas de pago</th>
                 <th class="p-2">N° rifa</th>
                 <th class="p-2">Dedicatoria</th>
               </tr>
@@ -239,6 +241,7 @@ const STATUS_LABELS: Record<string, string> = {
                   </td>
                   <td class="mono-figure p-2">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</td>
                   <td class="p-2">{{ order.payment?.verifiedByName ?? '—' }}</td>
+                  <td class="max-w-[220px] p-2" [title]="order.payment?.verificationNotes ?? ''">{{ order.payment?.verificationNotes ?? '—' }}</td>
                   <td class="mono-figure p-2">{{ order.raffleNumber ?? '—' }}</td>
                   <td class="max-w-[260px] p-2" [title]="order.letterContent">{{ order.letterContent }}</td>
                 </tr>

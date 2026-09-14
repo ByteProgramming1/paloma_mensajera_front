@@ -1,5 +1,5 @@
-import { Component, computed, input, output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, input, output } from '@angular/core';
+import { ControlContainer, FormsModule } from '@angular/forms';
 import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 
 export interface RecipientGroupDraft {
@@ -37,6 +37,11 @@ export interface RecipientGroupLine {
 @Component({
   selector: 'app-recipient-group-form',
   imports: [FormsModule],
+  // ngModelGroup dentro de un componente hijo no encuentra el <form> del padre por sí solo
+  // (los form directives de Angular no cruzan el límite de componente automáticamente) — esto
+  // reexpone el ControlContainer del padre (buscándolo un nivel arriba) como si fuera propio de
+  // este componente, que es el patrón estándar de Angular para "sub-formularios" en componentes hijos.
+  viewProviders: [{ provide: ControlContainer, useFactory: () => inject(ControlContainer, { skipSelf: true }) }],
   template: `
     <section class="card-surface flex flex-col gap-4 p-6" [ngModelGroup]="'recipient' + index()">
       <div class="flex flex-wrap items-center justify-between gap-2">
@@ -89,7 +94,7 @@ export interface RecipientGroupLine {
       }
     </section>
 
-    @if (!effectiveSelfPickup()) {
+    @if (!forcedPickup()) {
       <section class="card-surface flex flex-col gap-4 p-6" [ngModelGroup]="'letter' + index()">
         <h2 class="section-title">{{ showHeader() ? 'Dedicatoria para ' + (group().recipientFullName || 'este destinatario') : 'Tu dedicatoria' }}</h2>
         <p class="field-hint">Es opcional. Si escribes algo, un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
