@@ -10,6 +10,7 @@ import { CopyButton } from '../shared/copy-button';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
 import { ToastService } from '../shared/toast.service';
+import { groupOrders, OrderGroup } from '../shared/order-grouping';
 
 const PAGE_SIZE = 10;
 // Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
@@ -38,7 +39,50 @@ type Tab = 'pagos' | 'todos';
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
-    } @else if (visibleOrders().length === 0) {
+    } @else if (tab() === 'pagos') {
+      @if (pagedGroups().length === 0) {
+        <p class="field-hint">No hay pedidos en esta vista.</p>
+      } @else {
+        <ul class="mb-4 flex flex-col gap-4">
+          @for (group of pagedGroups(); track group.groupId ?? group.orders[0].id) {
+            <li class="card-surface flex flex-col gap-3 p-5">
+              @if (group.orders.length > 1) {
+                <p class="field-hint">Pago combinado — {{ group.orders.length }} destinatarios, mismo comprador ({{ group.orders[0].buyerFullName }}).</p>
+                <ul class="flex flex-col gap-2">
+                  @for (order of group.orders; track order.id) {
+                    <li class="rounded-[var(--radius-sm)] bg-bg-base p-3 text-[13px]">
+                      <p class="font-medium text-text-primary">
+                        {{ order.selfPickup ? 'Autorrecogida' : 'Entrega a: ' + order.recipientFullName }}
+                        <span class="mono-figure ml-2 text-text-secondary">{{ order.orderCode }}</span>
+                      </p>
+                      <p class="field-hint">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p class="font-semibold text-text-primary">
+                    {{ group.orders[0].buyerFullName }}
+                    <span class="mono-figure ml-2 text-[13px] text-text-secondary">{{ group.orders[0].orderCode }}</span>
+                  </p>
+                  <app-order-status-badge [status]="group.orders[0].status" />
+                </div>
+                <p class="field-hint">Destinatario: {{ group.orders[0].recipientFullName }} · {{ group.orders[0].selfPickup ? 'Autorrecogida' : 'Entrega a terceros' }}</p>
+                <p class="italic text-[14px] text-text-primary">“{{ group.orders[0].letterContent }}”</p>
+              }
+              <p class="mono-figure text-[16px] text-brand-magenta">{{ group.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+
+              <div class="flex flex-wrap items-center gap-3">
+                <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
+                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi/Bre-B?" (confirm)="verifyGroup(group, true)" />
+                <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
+              </div>
+            </li>
+          }
+        </ul>
+        <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
+      }
+    } @else if (pagedOrders().length === 0) {
       <p class="field-hint">No hay pedidos en esta vista.</p>
     } @else {
       <ul class="mb-4 flex flex-col gap-4">
@@ -55,53 +99,46 @@ type Tab = 'pagos' | 'todos';
             <p class="italic text-[14px] text-text-primary">“{{ order.letterContent }}”</p>
             <p class="mono-figure text-[16px] text-brand-magenta">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
 
-            @if (tab() === 'todos') {
-              <div class="paloma-enter grid gap-x-6 gap-y-3 rounded-[var(--radius-sm)] bg-bg-base p-4 text-[13px] text-text-primary sm:grid-cols-2">
-                <p><span class="field-label block">Fecha</span> {{ order.createdAt | date:'medium' }}</p>
-                <p><span class="field-label block">Anónimo</span> {{ order.isAnonymous ? 'Sí' : 'No' }}</p>
-                <p><span class="field-label block">Correo comprador</span> {{ order.buyerEmail ?? '—' }}</p>
-                <p><span class="field-label block">Teléfono comprador</span> {{ order.buyerPhone ?? '—' }}</p>
-                <p><span class="field-label block">Tipo comprador</span> {{ order.buyerType ?? '—' }}</p>
-                <p><span class="field-label block">Carrera / área comprador</span> {{ order.buyerCareerOrArea ?? '—' }}</p>
-                <p><span class="field-label block">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
-                <p><span class="field-label block">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
-                <p><span class="field-label block">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
-                <p><span class="field-label block">N° rifa</span> <span class="mono-figure">{{ order.raffleNumber ?? '—' }}</span></p>
-                <p>
-                  <span class="field-label block">Dedicatoria</span>
-                  {{ order.messageReview?.humanReviewStatus ?? '—' }}
-                  @if (order.messageReview?.rejectionReason) { ({{ order.messageReview!.rejectionReason }}) }
-                </p>
-                <p>
-                  <span class="field-label block">Pago</span>
-                  @if (order.payment) {
-                    {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod === 'CASH' ? 'Efectivo en el stand' : 'Nequi / Bre-B' }}
-                    @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
-                  } @else { Sin registro de pago }
-                </p>
+            <div class="paloma-enter grid gap-x-6 gap-y-3 rounded-[var(--radius-sm)] bg-bg-base p-4 text-[13px] text-text-primary sm:grid-cols-2">
+              <p><span class="field-label block">Fecha</span> {{ order.createdAt | date:'medium' }}</p>
+              <p><span class="field-label block">Anónimo</span> {{ order.isAnonymous ? 'Sí' : 'No' }}</p>
+              <p><span class="field-label block">Correo comprador</span> {{ order.buyerEmail ?? '—' }}</p>
+              <p><span class="field-label block">Teléfono comprador</span> {{ order.buyerPhone ?? '—' }}</p>
+              <p><span class="field-label block">Tipo comprador</span> {{ order.buyerType ?? '—' }}</p>
+              <p><span class="field-label block">Carrera / área comprador</span> {{ order.buyerCareerOrArea ?? '—' }}</p>
+              <p><span class="field-label block">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
+              <p><span class="field-label block">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
+              <p><span class="field-label block">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
+              <p><span class="field-label block">N° rifa</span> <span class="mono-figure">{{ order.raffleNumber ?? '—' }}</span></p>
+              @if (order.groupId) {
+                <p><span class="field-label block">Pago compartido con</span> otro(s) destinatario(s) del mismo comprador</p>
+              }
+              <p>
+                <span class="field-label block">Dedicatoria</span>
+                {{ order.messageReview?.humanReviewStatus ?? '—' }}
+                @if (order.messageReview?.rejectionReason) { ({{ order.messageReview!.rejectionReason }}) }
+              </p>
+              <p>
+                <span class="field-label block">Pago</span>
+                @if (order.payment) {
+                  {{ order.payment.verified ? 'Verificado' : 'No verificado' }} — {{ order.payment.paymentMethod === 'CASH' ? 'Efectivo en el stand' : 'Nequi / Bre-B' }}
+                  @if (order.payment.verificationNotes) { ({{ order.payment.verificationNotes }}) }
+                } @else { Sin registro de pago }
+              </p>
+              <div class="sm:col-span-2">
+                <span class="field-label block">Productos</span>
+                <ul class="mt-1 flex flex-col gap-0.5">
+                  @for (item of order.items; track item.id) {
+                    <li>{{ item.quantity }}× {{ item.productName ?? item.productId }} · {{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0' }}{{ item.selectedAddOnOption ? ' — ' + item.selectedAddOnOption.name : '' }}</li>
+                  }
+                </ul>
+              </div>
+              @if (teamsCopyEnabled && !order.selfPickup && order.payment?.verified && order.status !== 'DELIVERED') {
                 <div class="sm:col-span-2">
-                  <span class="field-label block">Productos</span>
-                  <ul class="mt-1 flex flex-col gap-0.5">
-                    @for (item of order.items; track item.id) {
-                      <li>{{ item.quantity }}× {{ item.productName ?? item.productId }} · {{ item.unitPrice | currency:'COP':'symbol-narrow':'1.0-0' }}{{ item.selectedAddOnOption ? ' — ' + item.selectedAddOnOption.name : '' }}</li>
-                    }
-                  </ul>
+                  <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                 </div>
-                @if (teamsCopyEnabled && !order.selfPickup && order.payment?.verified && order.status !== 'DELIVERED') {
-                  <div class="sm:col-span-2">
-                    <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
-                  </div>
-                }
-              </div>
-            }
-
-            @if (tab() === 'pagos' && order.status === 'PAYMENT_PENDING') {
-              <div class="flex flex-wrap items-center gap-3">
-                <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[order.id]" placeholder="Notas de verificación (opcional)" />
-                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi/Bre-B?" (confirm)="verifyPayment(order, true)" />
-                <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyPayment(order, false)" />
-              </div>
-            }
+              }
+            </div>
           </li>
         }
       </ul>
@@ -121,24 +158,28 @@ export class AdminOrdersPage {
   protected readonly notesDrafts: Record<string, string> = {};
   protected readonly currentPage = signal(1);
 
-  protected readonly visibleOrders = computed(() => {
-    const all = this.orders();
-    switch (this.tab()) {
-      // Solo ONLINE: los pagos PRESENCIAL (efectivo en el stand) los verifica un Vendedor,
-      // no el Administrador — ver seller/verify-payments-page.ts.
-      case 'pagos': return all.filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE');
-      default: return all;
-    }
+  // Solo ONLINE: los pagos PRESENCIAL (efectivo en el stand) los verifica un Vendedor,
+  // no el Administrador — ver seller/verify-payments-page.ts.
+  protected readonly pendingOrders = computed(() =>
+    this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE'));
+
+  protected readonly pendingGroups = computed<OrderGroup[]>(() => groupOrders(this.pendingOrders()));
+
+  protected readonly visibleLength = computed(() => (this.tab() === 'pagos' ? this.pendingGroups().length : this.orders().length));
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.visibleLength() / PAGE_SIZE)));
+  protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
+
+  protected readonly pagedGroups = computed(() => {
+    const page = this.clampedPage();
+    return this.pendingGroups().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
 
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.visibleOrders().length / PAGE_SIZE)));
-  protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
   protected readonly pagedOrders = computed(() => {
     const page = this.clampedPage();
-    return this.visibleOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    return this.orders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
 
-  protected readonly pendingCount = computed(() => this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE').length);
+  protected readonly pendingCount = computed(() => this.pendingOrders().length);
 
   constructor() {
     this.load();
@@ -161,8 +202,17 @@ export class AdminOrdersPage {
     }
   }
 
-  protected async verifyPayment(order: Order, verified: boolean): Promise<void> {
-    await firstValueFrom(this.ordersApi.verifyPayment(order.id, verified, this.notesDrafts[order.id]));
+  protected groupKey(group: OrderGroup): string {
+    return group.groupId ?? group.orders[0].id;
+  }
+
+  protected async verifyGroup(group: OrderGroup, verified: boolean): Promise<void> {
+    const notes = this.notesDrafts[this.groupKey(group)];
+    if (group.groupId) {
+      await firstValueFrom(this.ordersApi.verifyPaymentGroup(group.groupId, verified, notes));
+    } else {
+      await firstValueFrom(this.ordersApi.verifyPayment(group.orders[0].id, verified, notes));
+    }
     this.toast.success(verified ? 'Pago confirmado.' : 'Pago rechazado.');
     this.load();
   }

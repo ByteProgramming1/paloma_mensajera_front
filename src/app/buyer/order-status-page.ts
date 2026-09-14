@@ -1,15 +1,17 @@
 import { CurrencyPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Order } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
 import { ApiClientService } from '../core/api-client.service';
 import { OrderStatusBadge } from '../shared/order-status-badge';
+import { ToastService } from '../shared/toast.service';
 
 @Component({
   selector: 'app-order-status-page',
-  imports: [CurrencyPipe, RouterLink, OrderStatusBadge],
+  imports: [CurrencyPipe, FormsModule, RouterLink, OrderStatusBadge],
   template: `
     @if (order(); as order) {
       <div class="paloma-enter max-w-[640px]">
@@ -18,13 +20,30 @@ import { OrderStatusBadge } from '../shared/order-status-badge';
           <app-order-status-badge [status]="order.status" />
         </div>
 
+        @if (order.groupId) {
+          <p class="field-hint mb-4">Este pago también cubre otro destinatario — <a routerLink="/mis-pedidos" class="text-brand-magenta underline">velo completo en Mis pedidos</a>.</p>
+        }
+
         @switch (true) {
           @case (order.status === 'MESSAGE_PENDING_REVIEW') {
             <p class="text-[15px] leading-relaxed text-text-secondary">Un vendedor va a leer tu dedicatoria pronto. No necesitas hacer nada más por ahora — vuelve a esta página para elegir tu número de rifa apenas la aprueben.</p>
           }
           @case (order.status === 'MESSAGE_REJECTED') {
-            <p class="field-error text-[14px]">Tu dedicatoria fue rechazada{{ order.messageReview?.rejectionReason ? ': ' + order.messageReview?.rejectionReason : '.' }}</p>
-            <a routerLink="/catalogo" class="btn-primary mt-4 inline-flex">Editar y volver a enviar</a>
+            <p class="field-error text-[14px] mb-4">Tu dedicatoria fue rechazada{{ order.messageReview?.rejectionReason ? ': ' + order.messageReview?.rejectionReason : '.' }}</p>
+            <div class="card-surface flex flex-col gap-3 p-5">
+              <label class="field">
+                <span class="field-label">Corrige tu dedicatoria</span>
+                <textarea class="field-input !h-auto min-h-[100px] py-3" name="resubmitLetterContent" [(ngModel)]="resubmitLetterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
+              </label>
+              <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
+                <input type="checkbox" class="accent-brand-magenta size-4" name="resubmitIsAnonymous" [(ngModel)]="resubmitIsAnonymous" />
+                Enviar como anónimo (el vendedor no verá tu nombre)
+              </label>
+              @if (resubmitError()) { <p class="field-error text-[13px]">{{ resubmitError() }}</p> }
+              <button type="button" class="btn-primary self-start" [disabled]="isResubmitting()" (click)="resubmitMessage(order.id)">
+                {{ isResubmitting() ? 'Enviando…' : 'Reenviar dedicatoria' }}
+              </button>
+            </div>
           }
           @case (order.status === 'MESSAGE_APPROVED') {
             <p class="mb-4 text-[15px] leading-relaxed text-text-secondary">¡Tu dedicatoria fue aprobada! Ya puedes elegir tu número de la rifa.</p>
@@ -88,12 +107,18 @@ export class OrderStatusPage {
   private readonly route = inject(ActivatedRoute);
   private readonly ordersApi = inject(OrdersService);
   private readonly apiClient = inject(ApiClientService);
+  private readonly toast = inject(ToastService);
 
   protected readonly order = signal<Order | null>(null);
   protected readonly errorMessage = signal('');
   protected readonly nequiPhone = this.apiClient.nequiPhone;
   protected readonly brebKey = this.apiClient.brebKey;
   protected readonly sellerFullName = this.apiClient.sellerFullName;
+
+  protected resubmitLetterContent = '';
+  protected resubmitIsAnonymous = false;
+  protected readonly isResubmitting = signal(false);
+  protected readonly resubmitError = signal('');
 
   constructor() {
     // Siempre se recarga desde la API (en vez de confiar en el estado de navegación) para
@@ -108,8 +133,24 @@ export class OrderStatusPage {
     try {
       const order = await firstValueFrom(this.ordersApi.getById(id));
       this.order.set(order);
+      this.resubmitLetterContent = order.letterContent;
+      this.resubmitIsAnonymous = order.isAnonymous;
     } catch {
       this.errorMessage.set('No pudimos recuperar el estado de tu pedido en este momento. Revisa el correo de confirmación que te enviamos, o vuelve a intentarlo más tarde.');
+    }
+  }
+
+  protected async resubmitMessage(orderId: string): Promise<void> {
+    this.resubmitError.set('');
+    this.isResubmitting.set(true);
+    try {
+      const order = await firstValueFrom(this.ordersApi.resubmitMessage(orderId, this.resubmitLetterContent, this.resubmitIsAnonymous));
+      this.order.set(order);
+      this.toast.success('Dedicatoria reenviada para revisión.');
+    } catch (error) {
+      this.resubmitError.set(error instanceof Error ? error.message : 'No fue posible reenviar la dedicatoria.');
+    } finally {
+      this.isResubmitting.set(false);
     }
   }
 }

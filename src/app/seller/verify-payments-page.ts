@@ -8,6 +8,7 @@ import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { Pagination } from '../shared/pagination';
 import { ToastService } from '../shared/toast.service';
+import { groupOrders, OrderGroup } from '../shared/order-grouping';
 
 const PAGE_SIZE = 10;
 
@@ -26,26 +27,41 @@ const PAGE_SIZE = 10;
     @if (errorMessage()) { <p class="field-error mb-4">{{ errorMessage() }}</p> }
     @if (isLoading()) {
       <p class="text-text-secondary">Cargando…</p>
-    } @else if (pendingOrders().length === 0) {
+    } @else if (pendingGroups().length === 0) {
       <p class="field-hint">No hay pagos presenciales pendientes por confirmar.</p>
     } @else {
       <ul class="mb-4 flex flex-col gap-4">
-        @for (order of pagedOrders(); track order.id) {
+        @for (group of pagedGroups(); track group.groupId ?? group.orders[0].id) {
           <li class="card-surface flex flex-col gap-3 p-5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-semibold text-text-primary">
-                {{ order.buyerFullName }}
-                <span class="mono-figure ml-2 text-[13px] text-text-secondary">{{ order.orderCode }}</span>
-              </p>
-              <app-order-status-badge [status]="order.status" />
-            </div>
-            <p class="field-hint">Destinatario: {{ order.recipientFullName }} · {{ order.selfPickup ? 'Autorrecogida' : 'Entrega a terceros' }}</p>
-            <p class="mono-figure text-[16px] text-brand-magenta">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+            @if (group.orders.length > 1) {
+              <p class="field-hint">Pago combinado — {{ group.orders.length }} destinatarios, mismo comprador ({{ group.orders[0].buyerFullName }}).</p>
+              <ul class="flex flex-col gap-2">
+                @for (order of group.orders; track order.id) {
+                  <li class="rounded-[var(--radius-sm)] bg-bg-base p-3 text-[13px]">
+                    <p class="font-medium text-text-primary">
+                      {{ order.selfPickup ? 'Autorrecogida' : 'Entrega a: ' + order.recipientFullName }}
+                      <span class="mono-figure ml-2 text-text-secondary">{{ order.orderCode }}</span>
+                    </p>
+                    <p class="field-hint">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="font-semibold text-text-primary">
+                  {{ group.orders[0].buyerFullName }}
+                  <span class="mono-figure ml-2 text-[13px] text-text-secondary">{{ group.orders[0].orderCode }}</span>
+                </p>
+                <app-order-status-badge [status]="group.orders[0].status" />
+              </div>
+              <p class="field-hint">Destinatario: {{ group.orders[0].recipientFullName }} · {{ group.orders[0].selfPickup ? 'Autorrecogida' : 'Entrega a terceros' }}</p>
+            }
+            <p class="mono-figure text-[16px] text-brand-magenta">{{ group.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
 
             <div class="flex flex-wrap items-center gap-3">
-              <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[order.id]" [name]="'notes-' + order.id" placeholder="Notas de verificación (opcional)" />
-              <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que recibiste este pago en efectivo?" (confirm)="verifyPayment(order, true)" />
-              <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyPayment(order, false)" />
+              <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
+              <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que recibiste este pago en efectivo?" (confirm)="verifyGroup(group, true)" />
+              <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
             </div>
           </li>
         }
@@ -67,11 +83,13 @@ export class SellerVerifyPaymentsPage {
   protected readonly pendingOrders = computed(() =>
     this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'PRESENCIAL'));
 
-  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.pendingOrders().length / PAGE_SIZE)));
+  protected readonly pendingGroups = computed<OrderGroup[]>(() => groupOrders(this.pendingOrders()));
+
+  protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.pendingGroups().length / PAGE_SIZE)));
   protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
-  protected readonly pagedOrders = computed(() => {
+  protected readonly pagedGroups = computed(() => {
     const page = this.clampedPage();
-    return this.pendingOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    return this.pendingGroups().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
 
   constructor() {
@@ -90,9 +108,18 @@ export class SellerVerifyPaymentsPage {
     }
   }
 
-  protected async verifyPayment(order: Order, verified: boolean): Promise<void> {
+  protected groupKey(group: OrderGroup): string {
+    return group.groupId ?? group.orders[0].id;
+  }
+
+  protected async verifyGroup(group: OrderGroup, verified: boolean): Promise<void> {
+    const notes = this.notesDrafts[this.groupKey(group)];
     try {
-      await firstValueFrom(this.ordersApi.verifyPayment(order.id, verified, this.notesDrafts[order.id]));
+      if (group.groupId) {
+        await firstValueFrom(this.ordersApi.verifyPaymentGroup(group.groupId, verified, notes));
+      } else {
+        await firstValueFrom(this.ordersApi.verifyPayment(group.orders[0].id, verified, notes));
+      }
       this.toast.success(verified ? 'Pago confirmado.' : 'Pago rechazado.');
       await this.load();
     } catch (error) {
