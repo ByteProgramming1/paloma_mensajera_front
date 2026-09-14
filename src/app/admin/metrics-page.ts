@@ -104,6 +104,11 @@ const STATUS_LABELS: Record<string, string> = {
     }
 
     <section class="card-surface mt-8 p-6">
+      <app-bar-chart title="Horas pico — pedidos por hora del día" [rows]="peakHoursChartRows()" [formatter]="intFormatter" labelHeader="Hora" valueHeader="Pedidos" />
+      <p class="field-hint mt-4">Cuenta todos los pedidos recibidos (sin importar su estado), agrupados por la hora del día en que se crearon — útil para saber cuándo reforzar el equipo en el stand.</p>
+    </section>
+
+    <section class="card-surface mt-8 p-6">
       <app-bar-chart title="Lista de preparación" [rows]="prepChartRows()" [formatter]="intFormatter" labelHeader="Producto / acompañante" valueHeader="Cantidad" />
       <p class="field-hint mt-4">Cuánto hay que alistar para el día de la entrega — solo cuenta pedidos con pago verificado y no cancelados.</p>
     </section>
@@ -282,6 +287,16 @@ export class AdminMetricsPage {
     return [...counts.entries()]
       .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value);
+  });
+
+  // Horas pico: en qué hora del día se concentran los pedidos, para saber cuándo reforzar el stand.
+  protected readonly peakHoursChartRows = computed<BarChartRow[]>(() => {
+    const counts = new Array(24).fill(0);
+    for (const order of this.allOrders()) {
+      const hour = new Date(order.createdAt).getHours();
+      counts[hour]++;
+    }
+    return counts.map((value, hour) => ({ label: `${hour.toString().padStart(2, '0')}:00`, value }));
   });
 
   protected readonly verifiedByChannel = computed<Record<SalesChannel, number>>(() => {
