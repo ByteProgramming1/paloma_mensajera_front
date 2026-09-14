@@ -1,19 +1,21 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CartItem, Product } from '../core/api.models';
 
-interface CartLine { quantity: number; selectedAddOnOptionId?: string; }
+interface CartLineEntry { quantity: number; selectedAddOnOptionId?: string; }
+
+export interface CartLine { product: Product; quantity: number; selectedAddOnOptionId: string | undefined; }
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
-  private readonly cartLines = signal<Map<string, CartLine>>(new Map());
+  private readonly cartLines = signal<Map<string, CartLineEntry>>(new Map());
   private readonly catalog = signal<Product[]>([]);
 
-  readonly lines = computed(() => {
+  readonly lines = computed<CartLine[]>(() => {
     const products = new Map(this.catalog().map((product) => [product.id, product]));
     return [...this.cartLines().entries()]
       .filter(([, line]) => line.quantity > 0)
       .map(([productId, line]) => ({ product: products.get(productId), quantity: line.quantity, selectedAddOnOptionId: line.selectedAddOnOptionId }))
-      .filter((line): line is { product: Product; quantity: number; selectedAddOnOptionId: string | undefined } => !!line.product);
+      .filter((line): line is CartLine => !!line.product);
   });
 
   readonly total = computed(() => this.lines().reduce((sum, line) => sum + line.product.price * line.quantity, 0));

@@ -1,17 +1,18 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../core/auth.service';
-import { BuyerType, CreateOrderRequest, SalesChannel } from '../core/api.models';
+import { BuyerType, CreateOrderMultiRequest, CreateOrderRecipientDto, CreateOrderRequest, SalesChannel } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
-import { CartService } from '../shared/cart.service';
+import { CartService, CartLine } from '../shared/cart.service';
 import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
+import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmptyRecipientGroupDraft } from './recipient-group-form';
 
 @Component({
   selector: 'app-checkout-page',
-  imports: [FormsModule, CurrencyPipe, RouterLink],
+  imports: [FormsModule, CurrencyPipe, RouterLink, RecipientGroupForm],
   template: `
     <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-text-primary">Cuéntanos a quién va dirigido</h1>
     <p class="page-lede mb-1">
@@ -26,6 +27,11 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
         <form class="flex flex-col gap-8" (ngSubmit)="submit()">
           <section class="card-surface flex flex-col gap-4 p-6">
             <h2 class="section-title">Tus datos</h2>
+            @if (buyerNameMismatch()) {
+              <p class="field-hint rounded-[var(--radius-sm)] bg-status-pendiente/10 p-3 text-status-pendiente">
+                Este pedido va a quedar con tu cuenta ({{ auth.session()!.user.email }}) pero un nombre distinto al de tu perfil ({{ auth.session()!.user.name }}). Si estás comprando para ti, corrige el nombre; si le haces el favor de comprar a otra persona, tu nombre real va aquí en "Tus datos" y el de ella en "¿Quién recibe el regalo?".
+              </p>
+            }
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="field">
                 <span class="field-label field-required">Nombre completo</span>
@@ -63,59 +69,48 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
             </div>
           </section>
 
-          <section class="card-surface flex flex-col gap-4 p-6">
-            <h2 class="section-title">¿Quién recibe el regalo?</h2>
-            @if (hasPickupOnlyItem()) {
-              <p class="field-hint">Tu carrito incluye un producto que solo se puede recoger en el stand — no se puede enviar a otra persona, así que este pedido queda como autorrecogida.</p>
-            } @else {
-              <div class="flex gap-2">
-                <button type="button" class="btn" [class]="!form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = false">Es para alguien más</button>
-                <button type="button" class="btn" [class]="form.selfPickup ? 'btn-primary' : 'btn-secondary'" (click)="form.selfPickup = true">Yo mismo lo recojo</button>
-              </div>
-            }
-
-            @if (!form.selfPickup) {
-              <div class="grid gap-4 sm:grid-cols-2">
-                <label class="field sm:col-span-2">
-                  <span class="field-label field-required">Nombre completo del destinatario</span>
-                  <input class="field-input" name="recipientFullName" required [(ngModel)]="form.recipientFullName" />
-                </label>
-                <label class="field">
-                  <span class="field-label field-required">Carrera / área del destinatario</span>
-                  <select class="field-input" name="recipientCareerOrArea" required [(ngModel)]="form.recipientCareerOrArea">
-                    <option value="" disabled>Selecciona la carrera</option>
-                    @for (program of programs; track program) {
-                      <option [value]="program">{{ program }}</option>
-                    }
-                  </select>
-                </label>
-                <label class="field">
-                  <span class="field-label field-required">Correo institucional del destinatario</span>
-                  <input class="field-input" name="recipientTeamsUser" type="email" required [(ngModel)]="form.recipientTeamsUser" placeholder="usuario@escuelaing.edu.co" />
-                  <span class="field-hint">Si no sabes cómo obtenerlo, a través del buscador de Teams lo puedes hacer.</span>
-                </label>
-              </div>
-            } @else {
-              <label class="field">
-                <span class="field-label">Comentario para quien te entregue (opcional)</span>
-                <textarea class="field-input !h-auto min-h-[80px] py-3" name="deliveryNotes" [(ngModel)]="form.deliveryNotes" placeholder="Ej. paso a recogerlo después de las 3pm, soy la persona de gorra roja…"></textarea>
-              </label>
-            }
-          </section>
-
-          @if (!hasPickupOnlyItem()) {
+          @if (cart.lines().length > 1) {
             <section class="card-surface flex flex-col gap-4 p-6">
-              <h2 class="section-title">Tu dedicatoria</h2>
-              <p class="field-hint">Es opcional. Si escribes algo, un vendedor la lee manualmente antes de aprobarla — cuida el tono, no hay filtro automático que la corrija.</p>
-              <label class="field">
-                <span class="field-label">Dedicatoria (opcional)</span>
-                <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" [(ngModel)]="form.letterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
-              </label>
-              <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
-                <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="form.isAnonymous" />
-                Enviar como anónimo (el vendedor no verá tu nombre)
-              </label>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="section-title">¿Es todo para la misma persona?</h2>
+                <button type="button" class="btn-secondary !px-3 !py-1 text-[13px]" (click)="addRecipientGroup()">
+                  {{ recipientGroups.length > 1 ? '+ Agregar otro destinatario' : 'Dividir entre varias personas' }}
+                </button>
+              </div>
+              @if (recipientGroups.length > 1) {
+                <p class="field-hint">Elige a qué destinatario va cada producto de tu carrito.</p>
+                <ul class="flex flex-col gap-2">
+                  @for (line of cart.lines(); track line.product.id) {
+                    <li class="flex flex-wrap items-center justify-between gap-2 text-[14px] text-text-primary">
+                      <span>{{ line.quantity }}× {{ line.product.name }}</span>
+                      <select
+                        class="field-input max-w-[220px]"
+                        [name]="'assign-' + line.product.id"
+                        [ngModel]="lineAssignments[line.product.id] ?? 0"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="assignLine(line.product.id, $event)"
+                      >
+                        @for (group of recipientGroups; let gi = $index; track gi) {
+                          <option [value]="gi">Destinatario {{ gi + 1 }}</option>
+                        }
+                      </select>
+                    </li>
+                  }
+                </ul>
+              }
             </section>
+          }
+
+          @for (group of recipientGroups; let gi = $index; track gi) {
+            <app-recipient-group-form
+              [group]="group"
+              [index]="gi"
+              [lines]="groupLineViews(gi)"
+              [forcedPickup]="groupForcedPickup(gi)"
+              [showHeader]="recipientGroups.length > 1"
+              [removable]="gi > 0"
+              (remove)="removeRecipientGroup(gi)"
+            />
           }
 
           <section class="card-surface flex flex-col gap-3 p-6">
@@ -131,6 +126,9 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
                 Un vendedor autorizado en el stand recibe tu pago en efectivo y aprueba la compra ahí mismo — no necesitas pagar en línea.
               }
             </p>
+            @if (recipientGroups.length > 1) {
+              <p class="field-hint">Es un solo pago por el total combinado de los {{ recipientGroups.length }} destinatarios — no se paga por separado.</p>
+            }
           </section>
 
           @if (errorMessage()) { <p class="field-error" role="alert">{{ errorMessage() }}</p> }
@@ -142,14 +140,30 @@ import { ACADEMIC_PROGRAMS } from '../core/academic-programs.const';
 
         <aside class="card-surface sticky top-6 h-fit p-6">
           <h2 class="section-title mb-4">Resumen</h2>
-          <ul class="flex flex-col gap-3">
-            @for (line of cart.lines(); track line.product.id) {
-              <li class="flex items-center justify-between text-[14px] text-text-secondary">
-                <span>{{ line.quantity }}× {{ line.product.name }}</span>
-                <span class="mono-figure">{{ line.product.price * line.quantity | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
-              </li>
+          @if (recipientGroups.length > 1) {
+            @for (group of recipientGroups; let gi = $index; track gi) {
+              <div class="mb-4">
+                <p class="field-label mb-1">Destinatario {{ gi + 1 }}</p>
+                <ul class="flex flex-col gap-2">
+                  @for (line of linesForGroup(gi); track line.product.id) {
+                    <li class="flex items-center justify-between text-[14px] text-text-secondary">
+                      <span>{{ line.quantity }}× {{ line.product.name }}</span>
+                      <span class="mono-figure">{{ line.product.price * line.quantity | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                    </li>
+                  }
+                </ul>
+              </div>
             }
-          </ul>
+          } @else {
+            <ul class="flex flex-col gap-3">
+              @for (line of cart.lines(); track line.product.id) {
+                <li class="flex items-center justify-between text-[14px] text-text-secondary">
+                  <span>{{ line.quantity }}× {{ line.product.name }}</span>
+                  <span class="mono-figure">{{ line.product.price * line.quantity | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
+                </li>
+              }
+            </ul>
+          }
           <div class="mt-4 flex items-center justify-between border-t border-border-soft pt-4">
             <span class="font-semibold text-text-primary">Total</span>
             <span class="mono-figure text-[18px] text-brand-magenta">{{ cart.total() | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
@@ -175,13 +189,6 @@ export class CheckoutPage implements OnInit {
     buyerPhone: string;
     buyerType: BuyerType;
     buyerCareerOrArea: string;
-    selfPickup: boolean;
-    recipientFullName: string;
-    recipientCareerOrArea: string;
-    recipientTeamsUser: string;
-    deliveryNotes: string;
-    letterContent: string;
-    isAnonymous: boolean;
     salesChannel: SalesChannel;
   } = {
     buyerFullName: '',
@@ -189,37 +196,14 @@ export class CheckoutPage implements OnInit {
     buyerPhone: '',
     buyerType: 'ESTUDIANTE',
     buyerCareerOrArea: '',
-    selfPickup: false,
-    recipientFullName: '',
-    recipientCareerOrArea: '',
-    recipientTeamsUser: '',
-    deliveryNotes: '',
-    letterContent: '',
-    isAnonymous: false,
     salesChannel: 'ONLINE',
   };
 
-  // Autorrecogida obligatoria solo si TODO el carrito es no regalable (ej. solo paletas) —
-  // si hay aunque sea un producto regalable junto a la paleta, el pedido sí se puede enviar
-  // y dedicar a alguien, y la paleta simplemente va incluida en ese mismo envío.
-  protected readonly hasPickupOnlyItem = computed(() => {
-    const lines = this.cart.lines();
-    return lines.length > 0 && lines.every((line) => line.product.giftable === false);
-  });
-
-  constructor() {
-    // Un producto no regalable (ej. la paleta vendida sola) obliga autorrecogida — se fuerza
-    // acá en vez de solo ocultar el botón, para cubrir el caso de que ya estuviera en false
-    // antes de agregar ese producto al carrito.
-    effect(() => {
-      if (this.hasPickupOnlyItem()) {
-        this.form.selfPickup = true;
-        // No hay destinatario para escribirle, así que tampoco tiene sentido pedir dedicatoria.
-        this.form.letterContent = '';
-        this.form.isAnonymous = false;
-      }
-    });
-  }
+  // Un solo grupo por defecto = comportamiento de siempre (un destinatario, todo el carrito).
+  // Dividir el carrito entre varios destinatarios agrega grupos aquí; lineAssignments dice a
+  // cuál de estos grupos pertenece cada línea del carrito (sin entrada = grupo 0).
+  protected recipientGroups: RecipientGroupDraft[] = [createEmptyRecipientGroupDraft()];
+  protected lineAssignments: Partial<Record<string, number>> = {};
 
   ngOnInit(): void {
     const user = this.auth.session()?.user;
@@ -229,32 +213,114 @@ export class CheckoutPage implements OnInit {
     }
   }
 
+  // El correo queda bloqueado a la cuenta logueada, pero el nombre es editable — si alguien
+  // presta su cuenta para comprarle a un amigo y escribe el nombre del amigo aquí, el pedido
+  // queda con buyerEmail de una persona y buyerFullName de otra. No lo bloqueamos (a veces es
+  // intencional, ej. alguien comprando "de parte de" otra persona con su misma cuenta), pero se
+  // avisa para que no sea un error accidental por pereza de crear una cuenta nueva.
+  protected buyerNameMismatch(): boolean {
+    const user = this.auth.session()?.user;
+    return !!user && this.form.buyerFullName.trim() !== '' && this.form.buyerFullName.trim() !== user.name;
+  }
+
+  protected linesForGroup(index: number): CartLine[] {
+    return this.cart.lines().filter((line) => (this.lineAssignments[line.product.id] ?? 0) === index);
+  }
+
+  protected groupLineViews(index: number): RecipientGroupLine[] {
+    return this.linesForGroup(index).map((line) => ({ productId: line.product.id, productName: line.product.name, quantity: line.quantity }));
+  }
+
+  // Un destinatario queda forzado a autorrecogida solo si TODAS sus líneas asignadas son no
+  // regalables (ej. una paleta sola) — igual que la regla de siempre, pero evaluada por grupo.
+  protected groupForcedPickup(index: number): boolean {
+    const lines = this.linesForGroup(index);
+    return lines.length > 0 && lines.every((line) => line.product.giftable === false);
+  }
+
+  protected assignLine(productId: string, groupIndex: number): void {
+    this.lineAssignments = { ...this.lineAssignments, [productId]: Number(groupIndex) };
+  }
+
+  protected addRecipientGroup(): void {
+    this.recipientGroups = [...this.recipientGroups, createEmptyRecipientGroupDraft()];
+  }
+
+  protected removeRecipientGroup(index: number): void {
+    if (index === 0) return;
+    const next: Record<string, number> = {};
+    for (const [productId, groupIndex] of Object.entries(this.lineAssignments)) {
+      const current = groupIndex ?? 0;
+      if (current === index) next[productId] = 0;
+      else if (current > index) next[productId] = current - 1;
+      else next[productId] = current;
+    }
+    this.lineAssignments = next;
+    this.recipientGroups = this.recipientGroups.filter((_, i) => i !== index);
+  }
+
+  private buildRecipientDto(group: RecipientGroupDraft, index: number): CreateOrderRecipientDto {
+    // La dedicatoria solo se limpia cuando la autorrecogida es FORZADA (producto no regalable) —
+    // si el comprador elige autorrecogida por su cuenta con un carrito regalable, la dedicatoria
+    // que haya escrito igual se envía (igual que el comportamiento de siempre, de un solo
+    // destinatario: forzar y limpiar son cosas distintas).
+    const forced = this.groupForcedPickup(index);
+    const selfPickup = forced || group.selfPickup;
+    return {
+      selfPickup,
+      ...(selfPickup
+        ? { deliveryNotes: group.deliveryNotes || undefined }
+        : { recipientFullName: group.recipientFullName, recipientCareerOrArea: group.recipientCareerOrArea, recipientTeamsUser: group.recipientTeamsUser }),
+      cartItems: this.linesForGroup(index).map((line) => ({
+        productId: line.product.id,
+        quantity: line.quantity,
+        ...(line.selectedAddOnOptionId ? { selectedAddOnOptionId: line.selectedAddOnOptionId } : {}),
+      })),
+      letterContent: forced ? '' : group.letterContent,
+      isAnonymous: forced ? false : group.isAnonymous,
+    };
+  }
+
   protected async submit(): Promise<void> {
     this.errorMessage.set('');
+
+    if (this.recipientGroups.length > 1) {
+      const emptyGroupIndex = this.recipientGroups.findIndex((_, i) => this.linesForGroup(i).length === 0);
+      if (emptyGroupIndex !== -1) {
+        this.errorMessage.set(`El destinatario ${emptyGroupIndex + 1} no tiene productos asignados — asígnale al menos uno o quítalo.`);
+        return;
+      }
+    }
+
     this.isSubmitting.set(true);
     try {
-      const payload: CreateOrderRequest = {
-        buyerFullName: this.form.buyerFullName,
-        buyerEmail: this.form.buyerEmail,
-        buyerPhone: this.form.buyerPhone,
-        buyerType: this.form.buyerType,
-        buyerCareerOrArea: this.form.buyerCareerOrArea,
-        selfPickup: this.form.selfPickup,
-        cartItems: this.cart.toCartItems(),
-        letterContent: this.form.letterContent,
-        isAnonymous: this.form.isAnonymous,
-        salesChannel: this.form.salesChannel,
-        ...(this.form.selfPickup
-          ? { deliveryNotes: this.form.deliveryNotes || undefined }
-          : {
-              recipientFullName: this.form.recipientFullName,
-              recipientCareerOrArea: this.form.recipientCareerOrArea,
-              recipientTeamsUser: this.form.recipientTeamsUser,
-            }),
-      };
-      const order = await firstValueFrom(this.ordersApi.createPublic(payload));
-      this.cart.clear();
-      this.router.navigateByUrl(`/pedidos/${order.id}`);
+      if (this.recipientGroups.length === 1) {
+        const payload: CreateOrderRequest = {
+          buyerFullName: this.form.buyerFullName,
+          buyerEmail: this.form.buyerEmail,
+          buyerPhone: this.form.buyerPhone,
+          buyerType: this.form.buyerType,
+          buyerCareerOrArea: this.form.buyerCareerOrArea,
+          salesChannel: this.form.salesChannel,
+          ...this.buildRecipientDto(this.recipientGroups[0], 0),
+        };
+        const order = await firstValueFrom(this.ordersApi.createPublic(payload));
+        this.cart.clear();
+        this.router.navigateByUrl(`/pedidos/${order.id}`);
+      } else {
+        const payload: CreateOrderMultiRequest = {
+          buyerFullName: this.form.buyerFullName,
+          buyerEmail: this.form.buyerEmail,
+          buyerPhone: this.form.buyerPhone,
+          buyerType: this.form.buyerType,
+          buyerCareerOrArea: this.form.buyerCareerOrArea,
+          salesChannel: this.form.salesChannel,
+          recipients: this.recipientGroups.map((group, index) => this.buildRecipientDto(group, index)),
+        };
+        await firstValueFrom(this.ordersApi.createPublicMulti(payload));
+        this.cart.clear();
+        this.router.navigateByUrl('/mis-pedidos');
+      }
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible enviar tu pedido.');
     } finally {

@@ -4,6 +4,11 @@ import { SellerVerifyPaymentsPage } from './verify-payments-page';
 import { OrdersService } from '../core/orders.service';
 import { ToastService } from '../shared/toast.service';
 import { Order } from '../core/api.models';
+import { OrderGroup } from '../shared/order-grouping';
+
+function makeGroup(order: Order): OrderGroup {
+  return { groupId: order.groupId ?? null, orders: [order], totalAmount: order.totalAmount };
+}
 
 function makeOrder(overrides: Partial<Order>): Order {
   return {
@@ -25,11 +30,11 @@ function makeOrder(overrides: Partial<Order>): Order {
 }
 
 describe('SellerVerifyPaymentsPage', () => {
-  let ordersServiceStub: { list: ReturnType<typeof vi.fn>; verifyPayment: ReturnType<typeof vi.fn> };
+  let ordersServiceStub: { list: ReturnType<typeof vi.fn>; verifyPayment: ReturnType<typeof vi.fn>; verifyPaymentGroup: ReturnType<typeof vi.fn> };
   let toastServiceStub: { success: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    ordersServiceStub = { list: vi.fn(), verifyPayment: vi.fn() };
+    ordersServiceStub = { list: vi.fn(), verifyPayment: vi.fn(), verifyPaymentGroup: vi.fn() };
     toastServiceStub = { success: vi.fn() };
 
     TestBed.configureTestingModule({
@@ -55,7 +60,7 @@ describe('SellerVerifyPaymentsPage', () => {
     expect(component.pendingOrders().map((order) => order.id)).toEqual(['presencial-pendiente']);
   });
 
-  it('al confirmar un pago llama a verifyPayment y muestra un toast de éxito', async () => {
+  it('al confirmar un pago de un pedido suelto llama a verifyPayment (no al de grupo) y muestra un toast de éxito', async () => {
     const order = makeOrder({ id: 'a-confirmar', status: 'PAYMENT_PENDING', salesChannel: 'PRESENCIAL' });
     ordersServiceStub.list.mockReturnValue(of([order]));
     ordersServiceStub.verifyPayment.mockReturnValue(of({ ...order, status: 'PAYMENT_VERIFIED' }));
@@ -63,11 +68,33 @@ describe('SellerVerifyPaymentsPage', () => {
     const fixture = TestBed.createComponent(SellerVerifyPaymentsPage);
     fixture.detectChanges();
     await fixture.whenStable();
-    const component = fixture.componentInstance as unknown as { verifyPayment: (order: Order, verified: boolean) => Promise<void> };
+    const component = fixture.componentInstance as unknown as { verifyGroup: (group: OrderGroup, verified: boolean) => Promise<void> };
 
-    await component.verifyPayment(order, true);
+    await component.verifyGroup(makeGroup(order), true);
 
     expect(ordersServiceStub.verifyPayment).toHaveBeenCalledWith('a-confirmar', true, undefined);
+    expect(toastServiceStub.success).toHaveBeenCalledWith('Pago confirmado.');
+  });
+
+  it('al confirmar un pago combinado (mismo groupId) llama a verifyPaymentGroup con el groupId', async () => {
+    const orderA = makeOrder({ id: 'grupo-a', groupId: 'grupo-1', status: 'PAYMENT_PENDING', salesChannel: 'PRESENCIAL', totalAmount: 10000 });
+    const orderB = makeOrder({ id: 'grupo-b', groupId: 'grupo-1', status: 'PAYMENT_PENDING', salesChannel: 'PRESENCIAL', totalAmount: 8000 });
+    ordersServiceStub.list.mockReturnValue(of([orderA, orderB]));
+    ordersServiceStub.verifyPaymentGroup.mockReturnValue(of({ groupId: 'grupo-1', orders: [orderA, orderB] }));
+
+    const fixture = TestBed.createComponent(SellerVerifyPaymentsPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const component = fixture.componentInstance as unknown as { pendingGroups: () => OrderGroup[]; verifyGroup: (group: OrderGroup, verified: boolean) => Promise<void> };
+
+    const groups = component.pendingGroups();
+    expect(groups.length).toBe(1);
+    expect(groups[0].totalAmount).toBe(18000);
+
+    await component.verifyGroup(groups[0], true);
+
+    expect(ordersServiceStub.verifyPaymentGroup).toHaveBeenCalledWith('grupo-1', true, undefined);
+    expect(ordersServiceStub.verifyPayment).not.toHaveBeenCalled();
     expect(toastServiceStub.success).toHaveBeenCalledWith('Pago confirmado.');
   });
 
@@ -79,9 +106,9 @@ describe('SellerVerifyPaymentsPage', () => {
     const fixture = TestBed.createComponent(SellerVerifyPaymentsPage);
     fixture.detectChanges();
     await fixture.whenStable();
-    const component = fixture.componentInstance as unknown as { verifyPayment: (order: Order, verified: boolean) => Promise<void>; errorMessage: () => string };
+    const component = fixture.componentInstance as unknown as { verifyGroup: (group: OrderGroup, verified: boolean) => Promise<void>; errorMessage: () => string };
 
-    await component.verifyPayment(order, true);
+    await component.verifyGroup(makeGroup(order), true);
 
     expect(component.errorMessage()).toBe('Solo un vendedor puede confirmar este pago.');
     expect(toastServiceStub.success).not.toHaveBeenCalled();

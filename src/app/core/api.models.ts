@@ -98,6 +98,36 @@ export interface CreateOrderRequest {
   salesChannel: SalesChannel;
 }
 
+// Un elemento de `CreateOrderMultiRequest.recipients` — igual a CreateOrderRequest menos los
+// campos de comprador, que en el checkout multi-destinatario son compartidos por todo el grupo.
+export interface CreateOrderRecipientDto {
+  selfPickup: boolean;
+  recipientFullName?: string;
+  recipientCareerOrArea?: string;
+  recipientTeamsUser?: string;
+  deliveryNotes?: string;
+  cartItems: CartItem[];
+  letterContent: string;
+  isAnonymous: boolean;
+}
+
+// POST /orders/public/multi — un comprador, un canal de pago, varios destinatarios (recipients.length >= 2).
+export interface CreateOrderMultiRequest {
+  buyerFullName: string;
+  buyerEmail: string;
+  buyerPhone: string;
+  buyerType: BuyerType;
+  buyerCareerOrArea: string;
+  assistedBySellerId?: string;
+  salesChannel: SalesChannel;
+  recipients: CreateOrderRecipientDto[];
+}
+
+export interface CreateOrderGroupResponse {
+  groupId: string;
+  orders: Order[];
+}
+
 export interface OrderQuery {
   view?: 'message';
   search?: string;
@@ -173,6 +203,9 @@ export interface Order {
   teamsNotificationSent?: boolean;
   payment?: PaymentTransaction | null;
   messageReview?: MessageReview | null;
+  // Si no es null, este pedido se creó junto con otros en un checkout multi-destinatario y
+  // comparte el pago combinado con todos los pedidos que tengan el mismo groupId.
+  groupId?: string | null;
 }
 
 // GET /orders?view=message — vista reducida y buscable de la cola de dedicatorias (sección 3.2 del SDD).
@@ -185,6 +218,7 @@ export interface OrderMessageQueueItem {
   isAnonymous: boolean;
   selfPickup: boolean;
   deliveryNotes?: string | null;
+  groupId?: string | null;
 }
 
 export interface RaffleNumber {
