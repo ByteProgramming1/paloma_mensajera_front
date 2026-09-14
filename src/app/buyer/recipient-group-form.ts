@@ -102,10 +102,14 @@ export interface RecipientGroupLine {
           <span class="field-label">Dedicatoria (opcional)</span>
           <textarea class="field-input !h-auto min-h-[120px] py-3" name="letterContent" [(ngModel)]="group().letterContent" placeholder="Escribe tu mensaje… (puedes dejarlo en blanco)"></textarea>
         </label>
-        <label class="flex cursor-pointer items-center gap-2 text-[14px] text-text-secondary">
-          <input type="checkbox" class="accent-brand-magenta size-4" name="isAnonymous" [(ngModel)]="group().isAnonymous" />
-          Enviar como anónimo (el vendedor no verá tu nombre)
-        </label>
+        <div class="flex flex-col gap-2">
+          <span class="field-label">¿Cómo quieres firmar tu dedicatoria?</span>
+          <div class="flex gap-2">
+            <button type="button" class="btn flex-1 !py-3 !text-[14px]" [class]="!group().isAnonymous ? 'btn-primary' : 'btn-secondary'" (click)="group().isAnonymous = false">Con mi nombre</button>
+            <button type="button" class="btn flex-1 !py-3 !text-[14px]" [class]="group().isAnonymous ? 'btn-primary' : 'btn-secondary'" (click)="group().isAnonymous = true">Enviar anónimo</button>
+          </div>
+          <p class="field-hint">{{ group().isAnonymous ? 'Modo incógnito activado: el vendedor no verá tu nombre al revisar la dedicatoria.' : 'El vendedor verá tu nombre al revisar la dedicatoria.' }}</p>
+        </div>
       </section>
     }
   `,
