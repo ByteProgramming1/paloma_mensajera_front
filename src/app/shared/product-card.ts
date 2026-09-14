@@ -57,7 +57,7 @@ import { Icon } from './icon';
             </div>
           }
 
-          <div class="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto pr-1">
+          <div class="grid max-h-52 grid-cols-3 gap-2 overflow-y-auto pr-1">
             @for (option of group.options; track option.id) {
               <button
                 type="button"
