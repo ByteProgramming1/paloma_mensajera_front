@@ -199,8 +199,13 @@ export class CheckoutPage implements OnInit {
     salesChannel: 'ONLINE',
   };
 
-  protected readonly hasPickupOnlyItem = computed(() =>
-    this.cart.lines().some((line) => line.product.giftable === false));
+  // Autorrecogida obligatoria solo si TODO el carrito es no regalable (ej. solo paletas) —
+  // si hay aunque sea un producto regalable junto a la paleta, el pedido sí se puede enviar
+  // y dedicar a alguien, y la paleta simplemente va incluida en ese mismo envío.
+  protected readonly hasPickupOnlyItem = computed(() => {
+    const lines = this.cart.lines();
+    return lines.length > 0 && lines.every((line) => line.product.giftable === false);
+  });
 
   constructor() {
     // Un producto no regalable (ej. la paleta vendida sola) obliga autorrecogida — se fuerza
