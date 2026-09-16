@@ -41,4 +41,6 @@ export class OrdersService {
   updateDeliveryStatus(id: string, status: DeliveryStatus, details?: { receivedBy?: string; teamsConfirmationLog?: string; notes?: string }) {
     return this.api.patch<Order>(`/orders/${id}/delivery-status`, { status, ...details });
   }
+
+  delete(id: string) { return this.api.delete<{ deleted: boolean; orderCode: string }>(`/orders/${id}`); }
 }

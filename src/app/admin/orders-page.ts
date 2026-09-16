@@ -2,15 +2,17 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
-import { Order } from '../core/api.models';
+import { Order, RaffleNumber } from '../core/api.models';
 import { OrdersService } from '../core/orders.service';
+import { RaffleService } from '../core/raffle.service';
 import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { CopyButton } from '../shared/copy-button';
+import { RaffleChip } from '../shared/raffle-chip';
 import { buildTeamsPickupMessage } from '../shared/teams-message';
 import { Pagination } from '../shared/pagination';
 import { ToastService } from '../shared/toast.service';
-import { groupOrders, OrderGroup } from '../shared/order-grouping';
+import { groupOrders, isGroupReadyForPayment, paymentBlockedReason, OrderGroup } from '../shared/order-grouping';
 
 const PAGE_SIZE = 10;
 // Pedido explícito: ocultar el botón de copiar mensaje de Teams hasta nuevo aviso. Poner en `true` para reactivarlo.
@@ -20,7 +22,7 @@ type Tab = 'pagos' | 'todos';
 
 @Component({
   selector: 'app-admin-orders-page',
-  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge, CopyButton, Pagination],
+  imports: [FormsModule, CurrencyPipe, DatePipe, ConfirmAction, OrderStatusBadge, CopyButton, RaffleChip, Pagination],
   template: `
     <h1 class="page-title mb-1">Pedidos</h1>
     <p class="page-lede mb-6">Visibilidad total: remitente, destinatario, dedicatoria y estado de pago de cualquier pedido, sin restricciones.</p>
@@ -56,6 +58,9 @@ type Tab = 'pagos' | 'todos';
                         <span class="mono-figure ml-2 text-text-secondary">{{ order.orderCode }}</span>
                       </p>
                       <p class="field-hint">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+                      @if (order.status !== 'PAYMENT_PENDING') {
+                        <p class="field-error mt-1 text-[12px]">Aún no listo: {{ reasonFor(order) }}</p>
+                      }
                     </li>
                   }
                 </ul>
@@ -72,11 +77,15 @@ type Tab = 'pagos' | 'todos';
               }
               <p class="mono-figure text-[16px] text-brand-magenta">{{ group.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
 
-              <div class="flex flex-wrap items-center gap-3">
-                <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
-                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi/Bre-B?" (confirm)="verifyGroup(group, true)" />
-                <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
-              </div>
+              @if (isReady(group)) {
+                <div class="flex flex-wrap items-center gap-3">
+                  <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
+                  <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que el pago llegó por Nequi/Bre-B?" (confirm)="verifyGroup(group, true)" />
+                  <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
+                </div>
+              } @else {
+                <p class="field-hint">Este pago combinado se puede confirmar recién cuando todos los destinatarios lleguen a "Pago pendiente".</p>
+              }
             </li>
           }
         </ul>
@@ -109,7 +118,18 @@ type Tab = 'pagos' | 'todos';
               <p><span class="field-label block">Carrera / área destinatario</span> {{ order.recipientCareerOrArea ?? '—' }}</p>
               <p><span class="field-label block">Usuario Teams destinatario</span> {{ order.recipientTeamsUser ?? '—' }}</p>
               <p><span class="field-label block">Notas de entrega</span> {{ order.deliveryNotes ?? '—' }}</p>
-              <p><span class="field-label block">N° rifa</span> <span class="mono-figure">{{ order.raffleNumber ?? '—' }}</span></p>
+              <div>
+                <span class="field-label block">N° rifa</span>
+                @if (order.raffleNumber !== null) {
+                  <span class="mono-figure">{{ order.raffleNumber }}</span>
+                } @else if (order.status === 'MESSAGE_APPROVED') {
+                  <button type="button" class="btn-secondary !px-3 !py-1 text-[12px]" (click)="toggleRaffleAssign(order.id)">
+                    {{ assigningRaffleForOrderId() === order.id ? 'Cancelar' : 'Agregar número de rifa' }}
+                  </button>
+                } @else {
+                  <span class="mono-figure">—</span>
+                }
+              </div>
               @if (order.groupId) {
                 <p><span class="field-label block">Pago compartido con</span> otro(s) destinatario(s) del mismo comprador</p>
               }
@@ -138,6 +158,29 @@ type Tab = 'pagos' | 'todos';
                   <app-copy-button [text]="teamsMessage(order)" label="Copiar mensaje de Teams" />
                 </div>
               }
+              @if (assigningRaffleForOrderId() === order.id) {
+                <div class="sm:col-span-2 rounded-[var(--radius-sm)] border border-border-soft bg-bg-surface-elevated p-4">
+                  <p class="field-label mb-2">Elige el número que se le asigna a este pedido</p>
+                  @if (raffleAssignError()) { <p class="field-error mb-2 text-[12px]">{{ raffleAssignError() }}</p> }
+                  @if (raffleAssignLoading()) {
+                    <p class="field-hint">Cargando números disponibles…</p>
+                  } @else {
+                    <div class="flex flex-wrap gap-2">
+                      @for (number of availableRaffleNumbers(); track number.id) {
+                        <app-raffle-chip [number]="number.number" state="disponible" (pick)="confirmRaffleAssign(order.id, number)" />
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="flex justify-end">
+              <app-confirm-action
+                label="Eliminar pedido"
+                variant="secondary"
+                confirmPrompt="¿Eliminar este pedido permanentemente? Esta acción no se puede deshacer."
+                (confirm)="deleteOrder(order)"
+              />
             </div>
           </li>
         }
@@ -148,8 +191,14 @@ type Tab = 'pagos' | 'todos';
 })
 export class AdminOrdersPage {
   private readonly ordersApi = inject(OrdersService);
+  private readonly raffleApi = inject(RaffleService);
   private readonly toast = inject(ToastService);
   protected readonly teamsCopyEnabled = TEAMS_COPY_ENABLED;
+
+  protected readonly assigningRaffleForOrderId = signal<string | null>(null);
+  protected readonly availableRaffleNumbers = signal<RaffleNumber[]>([]);
+  protected readonly raffleAssignLoading = signal(false);
+  protected readonly raffleAssignError = signal('');
 
   protected readonly tab = signal<Tab>('pagos');
   protected readonly orders = signal<Order[]>([]);
@@ -163,7 +212,19 @@ export class AdminOrdersPage {
   protected readonly pendingOrders = computed(() =>
     this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'ONLINE'));
 
-  protected readonly pendingGroups = computed<OrderGroup[]>(() => groupOrders(this.pendingOrders()));
+  // No se agrupa solo lo PAYMENT_PENDING: un pago combinado (ver Order.groupId) necesita ver
+  // TODOS los pedidos del grupo, incluso los que aún no llegan a esa etapa, para poder explicar
+  // por qué el grupo no se puede confirmar todavía (ver isReady/reasonFor) en vez de que
+  // desaparezca de la cola sin ninguna explicación.
+  protected readonly onlineOrders = computed(() =>
+    this.orders().filter((order) => order.salesChannel === 'ONLINE'));
+
+  protected readonly pendingGroups = computed<OrderGroup[]>(() =>
+    groupOrders(this.onlineOrders()).filter((group) =>
+      group.groupId === null
+        ? group.orders[0].status === 'PAYMENT_PENDING'
+        : group.orders.some((order) => order.status === 'PAYMENT_PENDING'),
+    ));
 
   protected readonly visibleLength = computed(() => (this.tab() === 'pagos' ? this.pendingGroups().length : this.orders().length));
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.visibleLength() / PAGE_SIZE)));
@@ -206,6 +267,14 @@ export class AdminOrdersPage {
     return group.groupId ?? group.orders[0].id;
   }
 
+  protected isReady(group: OrderGroup): boolean {
+    return isGroupReadyForPayment(group);
+  }
+
+  protected reasonFor(order: Order): string {
+    return paymentBlockedReason(order);
+  }
+
   protected async verifyGroup(group: OrderGroup, verified: boolean): Promise<void> {
     const notes = this.notesDrafts[this.groupKey(group)];
     if (group.groupId) {
@@ -219,5 +288,55 @@ export class AdminOrdersPage {
 
   protected teamsMessage(order: Order): string {
     return buildTeamsPickupMessage(order);
+  }
+
+  // Puente para cuando un comprador se quedó sin elegir su número de rifa en un checkout
+  // multi-destinatario (ver my-orders-page): solo aplica a pedidos MESSAGE_APPROVED sin
+  // número todavía — la regla la vuelve a validar el propio backend (select-raffle-number).
+  protected async toggleRaffleAssign(orderId: string): Promise<void> {
+    if (this.assigningRaffleForOrderId() === orderId) {
+      this.assigningRaffleForOrderId.set(null);
+      return;
+    }
+    this.assigningRaffleForOrderId.set(orderId);
+    this.raffleAssignError.set('');
+    await this.loadAvailableRaffleNumbers();
+  }
+
+  private async loadAvailableRaffleNumbers(): Promise<void> {
+    this.raffleAssignLoading.set(true);
+    try {
+      const numbers = await firstValueFrom(this.raffleApi.map());
+      this.availableRaffleNumbers.set(numbers.filter((number) => number.status === 'AVAILABLE'));
+    } catch (error) {
+      this.raffleAssignError.set(error instanceof Error ? error.message : 'No fue posible cargar los números disponibles.');
+    } finally {
+      this.raffleAssignLoading.set(false);
+    }
+  }
+
+  protected async confirmRaffleAssign(orderId: string, number: RaffleNumber): Promise<void> {
+    this.raffleAssignError.set('');
+    try {
+      await firstValueFrom(this.ordersApi.selectRaffleNumber(orderId, number.id));
+      this.assigningRaffleForOrderId.set(null);
+      this.toast.success(`Número ${number.number} asignado.`);
+      this.load();
+    } catch (error) {
+      // Otro admin pudo haber tomado ese número justo antes — se refresca la lista
+      // de disponibles en vez de cerrar el panel, para que elija otro de una vez.
+      this.raffleAssignError.set(error instanceof Error ? error.message : 'Ese número ya no está disponible, elige otro.');
+      this.loadAvailableRaffleNumbers();
+    }
+  }
+
+  protected async deleteOrder(order: Order): Promise<void> {
+    try {
+      await firstValueFrom(this.ordersApi.delete(order.id));
+      this.toast.success(`Pedido ${order.orderCode} eliminado.`);
+      this.load();
+    } catch (error) {
+      this.errorMessage.set(error instanceof Error ? error.message : 'No fue posible eliminar el pedido.');
+    }
   }
 }

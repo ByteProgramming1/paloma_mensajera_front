@@ -105,8 +105,27 @@ const STATUS_LABELS: Record<string, string> = {
     }
 
     <section class="card-surface mt-8 p-6">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <p class="field-label">Filtrar por fecha</p>
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="field">
+            <span class="field-label">Desde</span>
+            <input class="field-input" type="date" [ngModel]="peakHoursDateFrom()" (ngModelChange)="peakHoursDateFrom.set($event)" [max]="peakHoursDateTo() || undefined" />
+          </label>
+          <label class="field">
+            <span class="field-label">Hasta</span>
+            <input class="field-input" type="date" [ngModel]="peakHoursDateTo()" (ngModelChange)="peakHoursDateTo.set($event)" [min]="peakHoursDateFrom() || undefined" />
+          </label>
+          @if (peakHoursDateFrom() || peakHoursDateTo()) {
+            <button type="button" class="btn-secondary !px-3 !py-1.5 text-[13px]" (click)="clearPeakHoursRange()">Ver todos los días</button>
+          }
+        </div>
+      </div>
       <app-area-chart title="Horas pico — pedidos por hora del día" [points]="peakHoursChartRows()" [formatter]="intFormatter" labelHeader="Hora" valueHeader="Pedidos" />
-      <p class="field-hint mt-4">Cuenta todos los pedidos recibidos (sin importar su estado), agrupados por la hora del día en que se crearon — útil para saber cuándo reforzar el equipo en el stand.</p>
+      <p class="field-hint mt-4">
+        {{ peakHoursDateFrom() || peakHoursDateTo() ? 'Pedidos recibidos en el rango elegido' : 'Cuenta todos los pedidos recibidos' }}
+        (sin importar su estado), agrupados por la hora del día en que se crearon — útil para saber cuándo reforzar el equipo en el stand.
+      </p>
     </section>
 
     <section class="card-surface mt-8 p-6">
@@ -292,10 +311,32 @@ export class AdminMetricsPage {
       .sort((a, b) => b.value - a.value);
   });
 
-  // Horas pico: en qué hora del día se concentran los pedidos, para saber cuándo reforzar el stand.
+  // Horas pico: en qué hora del día se concentran los pedidos, para saber cuándo reforzar el
+  // stand — filtrable por rango de fechas (ej. solo el día del evento) en vez de forzar
+  // siempre el historico completo.
+  protected readonly peakHoursDateFrom = signal('');
+  protected readonly peakHoursDateTo = signal('');
+
+  protected clearPeakHoursRange(): void {
+    this.peakHoursDateFrom.set('');
+    this.peakHoursDateTo.set('');
+  }
+
+  private readonly peakHoursOrders = computed(() => {
+    const from = this.peakHoursDateFrom() ? new Date(this.peakHoursDateFrom()).getTime() : null;
+    const to = this.peakHoursDateTo() ? new Date(this.peakHoursDateTo()).getTime() + 24 * 60 * 60 * 1000 - 1 : null;
+    if (from === null && to === null) return this.allOrders();
+    return this.allOrders().filter((order) => {
+      const createdAt = new Date(order.createdAt).getTime();
+      if (from !== null && createdAt < from) return false;
+      if (to !== null && createdAt > to) return false;
+      return true;
+    });
+  });
+
   protected readonly peakHoursChartRows = computed<BarChartRow[]>(() => {
     const counts = new Array(24).fill(0);
-    for (const order of this.allOrders()) {
+    for (const order of this.peakHoursOrders()) {
       const hour = new Date(order.createdAt).getHours();
       counts[hour]++;
     }

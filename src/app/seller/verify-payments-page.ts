@@ -8,7 +8,7 @@ import { ConfirmAction } from '../shared/confirm-action';
 import { OrderStatusBadge } from '../shared/order-status-badge';
 import { Pagination } from '../shared/pagination';
 import { ToastService } from '../shared/toast.service';
-import { groupOrders, OrderGroup } from '../shared/order-grouping';
+import { groupOrders, isGroupReadyForPayment, paymentBlockedReason, OrderGroup } from '../shared/order-grouping';
 
 const PAGE_SIZE = 10;
 
@@ -43,6 +43,9 @@ const PAGE_SIZE = 10;
                       <span class="mono-figure ml-2 text-text-secondary">{{ order.orderCode }}</span>
                     </p>
                     <p class="field-hint">{{ order.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+                    @if (order.status !== 'PAYMENT_PENDING') {
+                      <p class="field-error mt-1 text-[12px]">Aún no listo: {{ reasonFor(order) }}</p>
+                    }
                   </li>
                 }
               </ul>
@@ -58,11 +61,15 @@ const PAGE_SIZE = 10;
             }
             <p class="mono-figure text-[16px] text-brand-magenta">{{ group.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
 
-            <div class="flex flex-wrap items-center gap-3">
-              <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
-              <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que recibiste este pago en efectivo?" (confirm)="verifyGroup(group, true)" />
-              <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
-            </div>
+            @if (isReady(group)) {
+              <div class="flex flex-wrap items-center gap-3">
+                <input class="field-input max-w-[280px]" [(ngModel)]="notesDrafts[groupKey(group)]" [name]="'notes-' + groupKey(group)" placeholder="Notas de verificación (opcional)" />
+                <app-confirm-action label="Confirmar pago" confirmPrompt="¿Confirmas que recibiste este pago en efectivo?" (confirm)="verifyGroup(group, true)" />
+                <app-confirm-action label="Rechazar pago" variant="secondary" confirmPrompt="¿Rechazas este pago? Se libera el número de rifa." (confirm)="verifyGroup(group, false)" />
+              </div>
+            } @else {
+              <p class="field-hint">Este pago combinado se puede confirmar recién cuando todos los destinatarios lleguen a "Pago pendiente".</p>
+            }
           </li>
         }
       </ul>
@@ -80,10 +87,19 @@ export class SellerVerifyPaymentsPage {
   protected readonly notesDrafts: Record<string, string> = {};
   protected readonly currentPage = signal(1);
 
-  protected readonly pendingOrders = computed(() =>
-    this.orders().filter((order) => order.status === 'PAYMENT_PENDING' && order.salesChannel === 'PRESENCIAL'));
+  // No se filtra solo por PAYMENT_PENDING: un pago combinado (ver Order.groupId) necesita
+  // ver TODOS los pedidos del grupo, incluso los que aún no llegan a esa etapa, para poder
+  // explicar por qué el grupo no se puede confirmar todavía (ver isReady/reasonFor) en vez de
+  // que el grupo entero desaparezca de la cola sin ninguna explicación.
+  protected readonly channelOrders = computed(() =>
+    this.orders().filter((order) => order.salesChannel === 'PRESENCIAL'));
 
-  protected readonly pendingGroups = computed<OrderGroup[]>(() => groupOrders(this.pendingOrders()));
+  protected readonly pendingGroups = computed<OrderGroup[]>(() =>
+    groupOrders(this.channelOrders()).filter((group) =>
+      group.groupId === null
+        ? group.orders[0].status === 'PAYMENT_PENDING'
+        : group.orders.some((order) => order.status === 'PAYMENT_PENDING'),
+    ));
 
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.pendingGroups().length / PAGE_SIZE)));
   protected readonly clampedPage = computed(() => Math.min(this.currentPage(), this.totalPages()));
@@ -110,6 +126,14 @@ export class SellerVerifyPaymentsPage {
 
   protected groupKey(group: OrderGroup): string {
     return group.groupId ?? group.orders[0].id;
+  }
+
+  protected isReady(group: OrderGroup): boolean {
+    return isGroupReadyForPayment(group);
+  }
+
+  protected reasonFor(order: Order): string {
+    return paymentBlockedReason(order);
   }
 
   protected async verifyGroup(group: OrderGroup, verified: boolean): Promise<void> {
