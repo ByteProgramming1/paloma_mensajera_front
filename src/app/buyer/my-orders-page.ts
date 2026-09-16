@@ -58,6 +58,9 @@ import { groupOrders, OrderGroup } from '../shared/order-grouping';
                 </div>
               </div>
               <div class="flex shrink-0 items-center gap-3">
+                @if (groupNeedsRaffleNumber(group)) {
+                  <span class="rounded-full bg-status-pendiente/15 px-2.5 py-1 text-[12px] font-semibold text-status-pendiente">Falta elegir número de rifa</span>
+                }
                 <span class="mono-figure text-[15px] font-semibold text-brand-magenta">{{ group.totalAmount | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
                 @if (group.orders.length === 1) {
                   <app-order-status-badge [status]="group.orders[0].status" />
@@ -88,6 +91,13 @@ import { groupOrders, OrderGroup } from '../shared/order-grouping';
                       <p><span class="field-label block">Enviado como</span> {{ order.isAnonymous ? 'Anónimo' : 'Con tu nombre' }}</p>
                       @if (order.raffleNumber !== null) {
                         <p><span class="field-label block">N° de rifa</span> <span class="mono-figure">{{ order.raffleNumber }}</span></p>
+                      }
+                      @if (order.status === 'MESSAGE_APPROVED') {
+                        <p class="sm:col-span-2">
+                          <a [routerLink]="['/pedidos', order.id, 'rifa']" class="btn-primary inline-flex !px-4 !py-1.5 text-[13px]">
+                            ¡Tu dedicatoria fue aprobada! Elige tu número de rifa →
+                          </a>
+                        </p>
                       }
                       <p>
                         <span class="field-label block">Pago</span>
@@ -157,6 +167,13 @@ export class MyOrdersPage {
 
   protected groupPaymentSummary(group: OrderGroup): string {
     return group.orders.every((order) => order.payment?.verified === true) ? 'Pago verificado' : 'Pago pendiente';
+  }
+
+  // Visible sin expandir la tarjeta: evita que el comprador de un checkout multi-destinatario
+  // se quede sin elegir el número de alguno de sus destinatarios solo porque no supo que
+  // tenía que abrir el grupo para hacerlo (ver bug reportado en el checkout multi).
+  protected groupNeedsRaffleNumber(group: OrderGroup): boolean {
+    return group.orders.some((order) => order.status === 'MESSAGE_APPROVED');
   }
 
   protected isExpanded(key: string): boolean {

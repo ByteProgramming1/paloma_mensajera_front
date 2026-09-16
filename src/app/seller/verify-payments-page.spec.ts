@@ -55,9 +55,30 @@ describe('SellerVerifyPaymentsPage', () => {
     const fixture = TestBed.createComponent(SellerVerifyPaymentsPage);
     fixture.detectChanges();
     await fixture.whenStable();
-    const component = fixture.componentInstance as unknown as { pendingOrders: () => Order[] };
+    const component = fixture.componentInstance as unknown as { pendingGroups: () => OrderGroup[] };
 
-    expect(component.pendingOrders().map((order) => order.id)).toEqual(['presencial-pendiente']);
+    const groups = component.pendingGroups();
+    expect(groups.length).toBe(1);
+    expect(groups[0].orders.map((order) => order.id)).toEqual(['presencial-pendiente']);
+  });
+
+  it('un pago combinado con un destinatario que aún no llega a PAYMENT_PENDING sigue mostrándose (no desaparece), pero no está listo para confirmar', async () => {
+    const ready = makeOrder({ id: 'grupo-listo', groupId: 'grupo-2', status: 'PAYMENT_PENDING', salesChannel: 'PRESENCIAL' });
+    const stuck = makeOrder({ id: 'grupo-atascado', groupId: 'grupo-2', status: 'MESSAGE_APPROVED', salesChannel: 'PRESENCIAL' });
+    ordersServiceStub.list.mockReturnValue(of([ready, stuck]));
+
+    const fixture = TestBed.createComponent(SellerVerifyPaymentsPage);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const component = fixture.componentInstance as unknown as {
+      pendingGroups: () => OrderGroup[];
+      isReady: (group: OrderGroup) => boolean;
+    };
+
+    const groups = component.pendingGroups();
+    expect(groups.length).toBe(1);
+    expect(groups[0].orders.map((order) => order.id).sort()).toEqual(['grupo-atascado', 'grupo-listo']);
+    expect(component.isReady(groups[0])).toBe(false);
   });
 
   it('al confirmar un pago de un pedido suelto llama a verifyPayment (no al de grupo) y muestra un toast de éxito', async () => {
