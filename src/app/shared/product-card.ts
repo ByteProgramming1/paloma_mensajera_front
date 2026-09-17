@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, effect, input, output, signal } from '@angular/core';
+import { Component, computed, effect, input, output, signal } from '@angular/core';
 import { AddOnOption, Product } from '../core/api.models';
 import { Icon } from './icon';
 
@@ -9,7 +9,7 @@ import { Icon } from './icon';
   template: `
     <article
       class="card-surface group relative flex h-full w-full flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(41,20,33,.06),0_16px_32px_-14px_rgba(41,20,33,.22)]"
-      [class.z-10]="isPickerOpen()"
+      [class.z-10]="openIndex() !== null"
     >
       <div class="relative flex h-40 items-center justify-center overflow-hidden rounded-[var(--radius-paper)] bg-bg-base">
         @if (product().imageUrl) {
@@ -41,64 +41,68 @@ import { Icon } from './icon';
         </div>
       </div>
       @if (quantity() > 0 && addOnGroup(); as group) {
-        <div class="field relative paloma-enter">
-          <span class="field-label">{{ group.name }}</span>
+        <div class="flex flex-col gap-3">
+          @for (unit of unitIndexes(); track unit) {
+            <div class="field relative paloma-enter">
+              <span class="field-label">{{ quantity() > 1 ? group.name + ' — unidad ' + (unit + 1) + ' de ' + quantity() : group.name }}</span>
 
-          <button
-            type="button"
-            class="flex w-full items-center gap-3 rounded-[var(--radius-sm)] border p-2 text-left transition"
-            [class]="selectedOption() ? 'border-brand-magenta/25 bg-brand-magenta/5' : 'border-border-default hover:border-brand-magenta/40'"
-            [attr.aria-expanded]="isPickerOpen()"
-            (click)="isPickerOpen.set(!isPickerOpen())"
-          >
-            <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
-              @if (selectedOption(); as selected) {
-                @if (selected.imageUrl) {
-                  <img [src]="selected.imageUrl" [alt]="selected.name" class="size-full object-contain" />
-                } @else {
-                  <app-icon name="envelope" [size]="18" [strokeWidth]="1.4" class="text-brand-magenta/40" />
-                }
-              } @else {
-                <app-icon name="envelope" [size]="18" [strokeWidth]="1.4" class="text-text-secondary/50" />
+              <button
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[var(--radius-sm)] border p-2 text-left transition"
+                [class]="selectedOptionAt(unit) ? 'border-brand-magenta/25 bg-brand-magenta/5' : 'border-border-default hover:border-brand-magenta/40'"
+                [attr.aria-expanded]="openIndex() === unit"
+                (click)="toggle(unit)"
+              >
+                <div class="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-surface-elevated">
+                  @if (selectedOptionAt(unit); as selected) {
+                    @if (selected.imageUrl) {
+                      <img [src]="selected.imageUrl" [alt]="selected.name" class="size-full object-contain" />
+                    } @else {
+                      <app-icon name="envelope" [size]="18" [strokeWidth]="1.4" class="text-brand-magenta/40" />
+                    }
+                  } @else {
+                    <app-icon name="envelope" [size]="18" [strokeWidth]="1.4" class="text-text-secondary/50" />
+                  }
+                </div>
+                <div class="min-w-0 flex-1">
+                  @if (selectedOptionAt(unit); as selected) {
+                    <p class="text-[11px] font-medium text-text-secondary">Elegiste</p>
+                    <p class="line-clamp-1 text-[13px] font-medium text-text-primary">{{ selected.name }}</p>
+                  } @else {
+                    <p class="text-[13px] font-medium text-brand-magenta">Elige tu opción</p>
+                  }
+                </div>
+                <app-icon name="chevron-down" [size]="16" [strokeWidth]="2" class="shrink-0 text-text-secondary transition-transform" [class.rotate-180]="openIndex() === unit" />
+              </button>
+
+              @if (!selectedOptionAt(unit) && openIndex() !== unit) { <p class="field-hint">Elige una opción</p> }
+
+              @if (openIndex() === unit) {
+                <div class="fixed inset-0 z-20" (click)="openIndex.set(null)"></div>
+                <div class="paloma-enter absolute inset-x-0 top-[calc(100%+8px)] z-30 rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated p-3 shadow-[0_4px_12px_rgba(41,20,33,.08),0_20px_44px_-16px_rgba(41,20,33,.28)]">
+                  <div class="grid max-h-52 grid-cols-3 gap-2 overflow-y-auto pr-1">
+                    @for (option of group.options; track option.id) {
+                      <button
+                        type="button"
+                        class="relative flex flex-col items-center gap-1 rounded-[var(--radius-sm)] border-2 p-1.5 transition disabled:cursor-not-allowed disabled:opacity-40"
+                        [class]="option.id === selectedAddOnOptionIds()[unit] ? 'border-brand-magenta bg-brand-magenta/5' : 'border-border-default hover:border-brand-magenta/40'"
+                        [disabled]="isOptionOutOfStock(option)"
+                        (click)="selectOption(unit, option.id)"
+                      >
+                        <div class="flex size-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-base">
+                          @if (option.imageUrl) {
+                            <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-contain" />
+                          } @else {
+                            <app-icon name="envelope" [size]="18" [strokeWidth]="1.5" class="text-brand-magenta/40" />
+                          }
+                        </div>
+                        <span class="line-clamp-1 text-[11px] text-text-secondary">{{ option.name }}</span>
+                        @if (isOptionOutOfStock(option)) { <span class="text-[9px] font-bold uppercase tracking-wide text-status-error">Agotado</span> }
+                      </button>
+                    }
+                  </div>
+                </div>
               }
-            </div>
-            <div class="min-w-0 flex-1">
-              @if (selectedOption(); as selected) {
-                <p class="text-[11px] font-medium text-text-secondary">Elegiste</p>
-                <p class="line-clamp-1 text-[13px] font-medium text-text-primary">{{ selected.name }}</p>
-              } @else {
-                <p class="text-[13px] font-medium text-brand-magenta">Elige tu opción</p>
-              }
-            </div>
-            <app-icon name="chevron-down" [size]="16" [strokeWidth]="2" class="shrink-0 text-text-secondary transition-transform" [class.rotate-180]="isPickerOpen()" />
-          </button>
-
-          @if (!selectedAddOnOptionId() && !isPickerOpen()) { <p class="field-hint">Elige una opción</p> }
-
-          @if (isPickerOpen()) {
-            <div class="fixed inset-0 z-20" (click)="isPickerOpen.set(false)"></div>
-            <div class="paloma-enter absolute inset-x-0 top-[calc(100%+8px)] z-30 rounded-[var(--radius-md)] border border-border-soft bg-bg-surface-elevated p-3 shadow-[0_4px_12px_rgba(41,20,33,.08),0_20px_44px_-16px_rgba(41,20,33,.28)]">
-              <div class="grid max-h-52 grid-cols-3 gap-2 overflow-y-auto pr-1">
-                @for (option of group.options; track option.id) {
-                  <button
-                    type="button"
-                    class="relative flex flex-col items-center gap-1 rounded-[var(--radius-sm)] border-2 p-1.5 transition disabled:cursor-not-allowed disabled:opacity-40"
-                    [class]="option.id === selectedAddOnOptionId() ? 'border-brand-magenta bg-brand-magenta/5' : 'border-border-default hover:border-brand-magenta/40'"
-                    [disabled]="isOptionOutOfStock(option)"
-                    (click)="selectOption(option.id)"
-                  >
-                    <div class="flex size-14 items-center justify-center overflow-hidden rounded-[var(--radius-sm)] bg-bg-base">
-                      @if (option.imageUrl) {
-                        <img [src]="option.imageUrl" [alt]="option.name" class="size-full object-contain" />
-                      } @else {
-                        <app-icon name="envelope" [size]="18" [strokeWidth]="1.5" class="text-brand-magenta/40" />
-                      }
-                    </div>
-                    <span class="line-clamp-1 text-[11px] text-text-secondary">{{ option.name }}</span>
-                    @if (isOptionOutOfStock(option)) { <span class="text-[9px] font-bold uppercase tracking-wide text-status-error">Agotado</span> }
-                  </button>
-                }
-              </div>
             </div>
           }
         </div>
@@ -109,38 +113,46 @@ import { Icon } from './icon';
 export class ProductCard {
   readonly product = input.required<Product>();
   readonly quantity = input(0);
-  readonly selectedAddOnOptionId = input<string | undefined>(undefined);
+  readonly selectedAddOnOptionIds = input<(string | undefined)[]>([]);
   readonly quantityChange = output<number>();
-  readonly addOnOptionChange = output<string>();
+  readonly addOnOptionChange = output<{ index: number; optionId: string }>();
 
-  protected readonly isPickerOpen = signal(false);
+  // Índice de la unidad cuyo selector está abierto (una sola a la vez), o null si ninguna.
+  protected readonly openIndex = signal<number | null>(null);
+
+  protected readonly unitIndexes = computed(() => Array.from({ length: this.quantity() }, (_, i) => i));
 
   constructor() {
-    // Abre el selector solo cuando hace falta elegir (recien se agrego al carrito
-    // y aun no hay opción) — así no interrumpe si el comprador ya eligió antes.
+    // Abre automáticamente el selector de la primera unidad sin opción elegida — así no se
+    // pierde el paso de elegir carta al agregar unidades nuevas, pero sin interrumpir si el
+    // comprador ya cerró un selector sin elegir.
     effect(() => {
-      if (this.quantity() <= 0) {
-        this.isPickerOpen.set(false);
+      if (this.quantity() <= 0 || !this.addOnGroup()) {
+        this.openIndex.set(null);
         return;
       }
-      if (this.addOnGroup() && !this.selectedAddOnOptionId()) {
-        this.isPickerOpen.set(true);
-      }
+      if (this.openIndex() !== null) return;
+      const firstMissing = this.selectedAddOnOptionIds().findIndex((id) => !id);
+      if (firstMissing !== -1) this.openIndex.set(firstMissing);
     });
   }
 
-  protected selectOption(optionId: string): void {
-    this.addOnOptionChange.emit(optionId);
-    this.isPickerOpen.set(false);
+  protected toggle(unit: number): void {
+    this.openIndex.set(this.openIndex() === unit ? null : unit);
+  }
+
+  protected selectOption(unit: number, optionId: string): void {
+    this.addOnOptionChange.emit({ index: unit, optionId });
+    this.openIndex.set(null);
   }
 
   protected addOnGroup() {
     return this.product().addOnGroups?.[0] ?? null;
   }
 
-  protected selectedOption() {
+  protected selectedOptionAt(unit: number) {
     const group = this.addOnGroup();
-    const selectedId = this.selectedAddOnOptionId();
+    const selectedId = this.selectedAddOnOptionIds()[unit];
     if (!group || !selectedId) return null;
     return group.options.find((option) => option.id === selectedId) ?? null;
   }

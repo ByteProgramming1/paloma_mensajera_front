@@ -1,9 +1,14 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { CartItem, Product } from '../core/api.models';
 
-interface CartLineEntry { quantity: number; selectedAddOnOptionId?: string; }
+// Una entrada por unidad: addOnSelections[i] es la opción elegida para la unidad i (o undefined
+// si esa unidad todavía no tiene opción, o el producto no tiene grupo de acompañantes).
+interface CartLineEntry { addOnSelections: (string | undefined)[]; }
 
-export interface CartLine { product: Product; quantity: number; selectedAddOnOptionId: string | undefined; }
+// Una línea visible del carrito agrupa las unidades de un mismo producto que comparten la misma
+// opción de acompañante (incluida "ninguna"). Así dos combos iguales con carta distinta aparecen
+// como dos líneas separadas — cada una asignable a un destinatario distinto.
+export interface CartLine { key: string; product: Product; quantity: number; selectedAddOnOptionId: string | undefined; }
 
 @Injectable({ providedIn: 'root' })
 export class CartService {
@@ -12,10 +17,27 @@ export class CartService {
 
   readonly lines = computed<CartLine[]>(() => {
     const products = new Map(this.catalog().map((product) => [product.id, product]));
-    return [...this.cartLines().entries()]
-      .filter(([, line]) => line.quantity > 0)
-      .map(([productId, line]) => ({ product: products.get(productId), quantity: line.quantity, selectedAddOnOptionId: line.selectedAddOnOptionId }))
-      .filter((line): line is CartLine => !!line.product);
+    const result: CartLine[] = [];
+    for (const [productId, entry] of this.cartLines()) {
+      const product = products.get(productId);
+      if (!product) continue;
+      const counts = new Map<string, number>();
+      const order: string[] = [];
+      for (const addOnOptionId of entry.addOnSelections) {
+        const groupKey = addOnOptionId ?? '';
+        if (!counts.has(groupKey)) {
+          counts.set(groupKey, 0);
+          order.push(groupKey);
+        }
+        counts.set(groupKey, counts.get(groupKey)! + 1);
+      }
+      for (const groupKey of order) {
+        const selectedAddOnOptionId = groupKey || undefined;
+        const key = selectedAddOnOptionId ? `${productId}::${selectedAddOnOptionId}` : productId;
+        result.push({ key, product, quantity: counts.get(groupKey)!, selectedAddOnOptionId });
+      }
+    }
+    return result;
   });
 
   readonly total = computed(() => this.lines().reduce((sum, line) => sum + line.product.price * line.quantity, 0));
@@ -26,25 +48,36 @@ export class CartService {
   }
 
   quantityOf(productId: string): number {
-    return this.cartLines().get(productId)?.quantity ?? 0;
+    return this.cartLines().get(productId)?.addOnSelections.length ?? 0;
   }
 
-  selectedAddOnOptionOf(productId: string): string | undefined {
-    return this.cartLines().get(productId)?.selectedAddOnOptionId;
+  // Una selección por unidad, en el mismo orden que se fueron agregando — permite que dos
+  // unidades del mismo producto tengan cada una su propia opción (o ninguna).
+  selectedAddOnOptionsOf(productId: string): (string | undefined)[] {
+    return this.cartLines().get(productId)?.addOnSelections ?? [];
   }
 
   setQuantity(productId: string, quantity: number): void {
     const next = new Map(this.cartLines());
-    if (quantity <= 0) next.delete(productId);
-    else next.set(productId, { ...next.get(productId), quantity });
+    if (quantity <= 0) {
+      next.delete(productId);
+      this.cartLines.set(next);
+      return;
+    }
+    const current = next.get(productId)?.addOnSelections ?? [];
+    const resized = current.slice(0, quantity);
+    while (resized.length < quantity) resized.push(undefined);
+    next.set(productId, { addOnSelections: resized });
     this.cartLines.set(next);
   }
 
-  setAddOnOption(productId: string, selectedAddOnOptionId: string): void {
+  setAddOnOptionAt(productId: string, index: number, selectedAddOnOptionId: string): void {
     const next = new Map(this.cartLines());
     const current = next.get(productId);
-    if (!current) return;
-    next.set(productId, { ...current, selectedAddOnOptionId });
+    if (!current || index < 0 || index >= current.addOnSelections.length) return;
+    const addOnSelections = [...current.addOnSelections];
+    addOnSelections[index] = selectedAddOnOptionId;
+    next.set(productId, { addOnSelections });
     this.cartLines.set(next);
   }
 

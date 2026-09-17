@@ -42,5 +42,9 @@ export class OrdersService {
     return this.api.patch<Order>(`/orders/${id}/delivery-status`, { status, ...details });
   }
 
+  updateProductReady(id: string, productReady: boolean) {
+    return this.api.patch<Order>(`/orders/${id}/product-ready`, { productReady });
+  }
+
   delete(id: string) { return this.api.delete<{ deleted: boolean; orderCode: string }>(`/orders/${id}`); }
 }
