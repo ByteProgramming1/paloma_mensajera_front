@@ -213,7 +213,7 @@ const STATUS_LABELS: Record<string, string> = {
           <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
         </div>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
-          <table class="w-full min-w-[2040px] border-collapse text-[13px]">
+          <table class="w-full min-w-[2200px] border-collapse text-[13px]">
             <thead>
               <tr class="bg-bg-base text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
                 <th class="p-2">Código</th>
@@ -227,6 +227,7 @@ const STATUS_LABELS: Record<string, string> = {
                 <th class="p-2">Carrera / área (comprador)</th>
                 <th class="p-2">Autorrecogida</th>
                 <th class="p-2">Destinatario</th>
+                <th class="p-2">Correo (destinatario)</th>
                 <th class="p-2">Carrera / área (destinatario)</th>
                 <th class="p-2">Anónimo</th>
                 <th class="p-2">Productos</th>
@@ -252,6 +253,7 @@ const STATUS_LABELS: Record<string, string> = {
                   <td class="p-2">{{ order.buyerCareerOrArea ?? '—' }}</td>
                   <td class="p-2">{{ order.selfPickup ? 'Sí' : 'No' }}</td>
                   <td class="p-2">{{ order.recipientFullName }}</td>
+                  <td class="p-2">{{ order.recipientTeamsUser ?? '—' }}</td>
                   <td class="p-2">{{ order.recipientCareerOrArea ?? '—' }}</td>
                   <td class="p-2">{{ order.isAnonymous ? 'Sí' : 'No' }}</td>
                   <td class="p-2">
@@ -430,7 +432,7 @@ export class AdminMetricsPage {
       if (query) {
         const haystack = [
           order.buyerFullName, order.buyerEmail, order.buyerPhone, order.buyerCareerOrArea,
-          order.recipientFullName, order.recipientCareerOrArea, order.orderCode,
+          order.recipientFullName, order.recipientTeamsUser, order.recipientCareerOrArea, order.orderCode,
         ].filter(Boolean).join(' ').toLowerCase();
         if (!haystack.includes(query)) return false;
       }
