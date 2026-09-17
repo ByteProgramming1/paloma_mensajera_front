@@ -80,15 +80,15 @@ import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmpt
               @if (recipientGroups.length > 1) {
                 <p class="field-hint">Elige a qué destinatario va cada producto de tu carrito.</p>
                 <ul class="flex flex-col gap-2">
-                  @for (line of cart.lines(); track line.product.id) {
+                  @for (line of cart.lines(); track line.key) {
                     <li class="flex flex-wrap items-center justify-between gap-2 text-[14px] text-text-primary">
                       <span>{{ line.quantity }}× {{ line.product.name }}</span>
                       <select
                         class="field-input max-w-[220px]"
-                        [name]="'assign-' + line.product.id"
-                        [ngModel]="lineAssignments[line.product.id] ?? 0"
+                        [name]="'assign-' + line.key"
+                        [ngModel]="lineAssignments[line.key] ?? 0"
                         [ngModelOptions]="{ standalone: true }"
-                        (ngModelChange)="assignLine(line.product.id, $event)"
+                        (ngModelChange)="assignLine(line.key, $event)"
                       >
                         @for (group of recipientGroups; let gi = $index; track gi) {
                           <option [value]="gi">Destinatario {{ gi + 1 }}</option>
@@ -171,7 +171,7 @@ import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmpt
               <div class="mb-4">
                 <p class="field-label mb-1">Destinatario {{ gi + 1 }}</p>
                 <ul class="flex flex-col gap-2">
-                  @for (line of linesForGroup(gi); track line.product.id) {
+                  @for (line of linesForGroup(gi); track line.key) {
                     <li class="flex items-center justify-between text-[14px] text-text-secondary">
                       <span>{{ line.quantity }}× {{ line.product.name }}</span>
                       <span class="mono-figure">{{ line.product.price * line.quantity | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
@@ -182,7 +182,7 @@ import { RecipientGroupForm, RecipientGroupDraft, RecipientGroupLine, createEmpt
             }
           } @else {
             <ul class="flex flex-col gap-3">
-              @for (line of cart.lines(); track line.product.id) {
+              @for (line of cart.lines(); track line.key) {
                 <li class="flex items-center justify-between text-[14px] text-text-secondary">
                   <span>{{ line.quantity }}× {{ line.product.name }}</span>
                   <span class="mono-figure">{{ line.product.price * line.quantity | currency:'COP':'symbol-narrow':'1.0-0' }}</span>
@@ -250,7 +250,7 @@ export class CheckoutPage implements OnInit {
   }
 
   protected linesForGroup(index: number): CartLine[] {
-    return this.cart.lines().filter((line) => (this.lineAssignments[line.product.id] ?? 0) === index);
+    return this.cart.lines().filter((line) => (this.lineAssignments[line.key] ?? 0) === index);
   }
 
   protected groupLineViews(index: number): RecipientGroupLine[] {
@@ -264,8 +264,8 @@ export class CheckoutPage implements OnInit {
     return lines.length > 0 && lines.every((line) => line.product.giftable === false);
   }
 
-  protected assignLine(productId: string, groupIndex: number): void {
-    this.lineAssignments = { ...this.lineAssignments, [productId]: Number(groupIndex) };
+  protected assignLine(lineKey: string, groupIndex: number): void {
+    this.lineAssignments = { ...this.lineAssignments, [lineKey]: Number(groupIndex) };
   }
 
   protected addRecipientGroup(): void {
@@ -275,11 +275,11 @@ export class CheckoutPage implements OnInit {
   protected removeRecipientGroup(index: number): void {
     if (index === 0) return;
     const next: Record<string, number> = {};
-    for (const [productId, groupIndex] of Object.entries(this.lineAssignments)) {
+    for (const [lineKey, groupIndex] of Object.entries(this.lineAssignments)) {
       const current = groupIndex ?? 0;
-      if (current === index) next[productId] = 0;
-      else if (current > index) next[productId] = current - 1;
-      else next[productId] = current;
+      if (current === index) next[lineKey] = 0;
+      else if (current > index) next[lineKey] = current - 1;
+      else next[lineKey] = current;
     }
     this.lineAssignments = next;
     this.recipientGroups = this.recipientGroups.filter((_, i) => i !== index);

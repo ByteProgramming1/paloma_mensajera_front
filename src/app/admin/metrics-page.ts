@@ -213,7 +213,7 @@ const STATUS_LABELS: Record<string, string> = {
           <app-pagination [page]="clampedPage()" [totalPages]="totalPages()" (pageChange)="currentPage.set($event)" />
         </div>
         <div class="overflow-x-auto rounded-[var(--radius-sm)] border border-border-soft">
-          <table class="w-full min-w-[1880px] border-collapse text-[13px]">
+          <table class="w-full min-w-[2040px] border-collapse text-[13px]">
             <thead>
               <tr class="bg-bg-base text-left text-[11px] font-semibold uppercase tracking-wide text-text-secondary">
                 <th class="p-2">Código</th>
@@ -235,6 +235,7 @@ const STATUS_LABELS: Record<string, string> = {
                 <th class="p-2">Notas de pago</th>
                 <th class="p-2">N° rifa</th>
                 <th class="p-2">Dedicatoria</th>
+                <th class="p-2">Producto listo para entregar</th>
               </tr>
             </thead>
             <tbody>
@@ -263,6 +264,9 @@ const STATUS_LABELS: Record<string, string> = {
                   <td class="max-w-[220px] p-2" [title]="order.payment?.verificationNotes ?? ''">{{ order.payment?.verificationNotes ?? '—' }}</td>
                   <td class="mono-figure p-2">{{ order.raffleNumber ?? '—' }}</td>
                   <td class="max-w-[260px] p-2" [title]="order.letterContent">{{ order.letterContent }}</td>
+                  <td class="p-2 text-center">
+                    <input type="checkbox" class="h-4 w-4 accent-brand-magenta" [checked]="isReady(order.id)" [disabled]="isReadyUpdating(order.id)" (change)="toggleReady(order.id)" />
+                  </td>
                 </tr>
               }
             </tbody>
@@ -441,6 +445,35 @@ export class AdminMetricsPage {
     const page = this.clampedPage();
     return this.filteredOrders().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   });
+
+  // Checklist operativo "listo para entregar": persiste en el backend (Order.productReady)
+  // para que se vea igual sin importar desde qué dispositivo/sesión se abra el admin.
+  protected readonly readyUpdating = signal<Set<string>>(new Set());
+
+  protected isReady(orderId: string): boolean {
+    return this.allOrders().find((order) => order.id === orderId)?.productReady ?? false;
+  }
+
+  protected isReadyUpdating(orderId: string): boolean {
+    return this.readyUpdating().has(orderId);
+  }
+
+  protected async toggleReady(orderId: string): Promise<void> {
+    const current = this.isReady(orderId);
+    const updating = new Set(this.readyUpdating());
+    updating.add(orderId);
+    this.readyUpdating.set(updating);
+    try {
+      const updated = await firstValueFrom(this.ordersApi.updateProductReady(orderId, !current));
+      this.allOrders.update((orders) => orders.map((order) => (order.id === orderId ? updated : order)));
+    } catch (error) {
+      this.ordersError.set(error instanceof Error ? error.message : 'No fue posible actualizar el checklist.');
+    } finally {
+      const done = new Set(this.readyUpdating());
+      done.delete(orderId);
+      this.readyUpdating.set(done);
+    }
+  }
 
   protected clearFilters(): void {
     this.currentPage.set(1);

@@ -23,9 +23,9 @@ import { ProductCard } from '../shared/product-card';
           <app-product-card
             [product]="product"
             [quantity]="cart.quantityOf(product.id)"
-            [selectedAddOnOptionId]="cart.selectedAddOnOptionOf(product.id)"
+            [selectedAddOnOptionIds]="cart.selectedAddOnOptionsOf(product.id)"
             (quantityChange)="cart.setQuantity(product.id, $event)"
-            (addOnOptionChange)="cart.setAddOnOption(product.id, $event)"
+            (addOnOptionChange)="cart.setAddOnOptionAt(product.id, $event.index, $event.optionId)"
           />
         }
       </div>

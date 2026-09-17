@@ -206,6 +206,8 @@ export interface Order {
   // Si no es null, este pedido se creó junto con otros en un checkout multi-destinatario y
   // comparte el pago combinado con todos los pedidos que tengan el mismo groupId.
   groupId?: string | null;
+  // Checklist operativo del equipo de preparación — independiente de OrderStatus.
+  productReady: boolean;
 }
 
 // GET /orders?view=message — vista reducida y buscable de la cola de dedicatorias (sección 3.2 del SDD).
